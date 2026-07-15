@@ -28,16 +28,19 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    # Build: install (incl. dev deps — Render sets NODE_ENV=production which
-    # would otherwise skip typescript/prisma), generate client, compile,
-    # create the schema, and seed admin + demo data. Seed is best-effort.
+    # Build only compiles (install incl. dev deps — Render sets
+    # NODE_ENV=production which would otherwise skip typescript/prisma).
     buildCommand: >-
       npm install --include=dev &&
       npx prisma generate &&
-      npm run build &&
+      npm run build
+    # Migrate + seed at START, when the linked database is guaranteed ready.
+    # `prisma db push` is idempotent — it creates the schema if it doesn't
+    # exist and is a no-op afterwards ("auto-migrate if it doesn't exist").
+    startCommand: >-
       npx prisma db push &&
-      (npm run seed || echo 'seed skipped')
-    startCommand: npm start
+      (npm run seed || echo 'seed skipped') &&
+      node dist/server.js
     healthCheckPath: /health
     envVars:
       # ── Core (required) ──

@@ -7,6 +7,6 @@
   },
   "scripts": {
     "postinstall": "cd backend && npm install --include=dev && npx prisma generate && npm run build",
-    "start": "cd backend && (npx prisma db push || echo 'prisma db push skipped') && node dist/server.js"
+    "start": "cd backend && npx prisma db push && (npm run seed || echo 'seed skipped') && node dist/server.js"
   }
 }
