@@ -1,0 +1,6 @@
+.DS_Store
+# Local env helpers — never commit real secrets. Deploy via the render.yaml
+# Blueprint (which generates JWT_SECRET on Render), or paste render.env into
+# the dashboard by hand.
+render.env
+*.local.env

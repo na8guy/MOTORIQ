@@ -1,78 +1,115 @@
-# Render Blueprint for MOTORIQ.
-# Create → "Blueprint" in the Render dashboard and point it at this repo.
-# It provisions a managed PostgreSQL database and the API web service.
-# Fill the `sync: false` secrets in the dashboard after the first deploy.
+# MOTORIQ — complete Render Blueprint.
+#
+# Deploy: Render Dashboard → New → Blueprint → pick this repo.
+# This provisions a PostgreSQL database AND the API web service, wires
+# DATABASE_URL, generates a secure JWT_SECRET, creates the schema, seeds an
+# admin + demo account, and auto-populates every other variable with working
+# dummy values (all third-party integrations run in mock mode). No manual env
+# entry required — the platform boots ready to use.
+#
+# After deploy:
+#   • API:   https://<service>.onrender.com/health
+#   • Admin: https://<service>.onrender.com/admin   (admin@motoriq.co.uk / see ADMIN_PASSWORD)
+#   • Demo:  demo@motoriq.co.uk / password123
+#
+# Free tier notes: free web services sleep after ~15 min idle (first request
+# wakes them); free PostgreSQL is deleted ~30 days after creation — upgrade to
+# a paid DB plan for anything real.
 
 databases:
   - name: motoriq-db
     databaseName: motoriq
     user: motoriq
-    plan: free # bump to `starter`+ for production
+    plan: free
 
 services:
   - type: web
     name: motoriq-api
     runtime: node
-    plan: free # bump for production
+    plan: free
     rootDir: backend
-    # --include=dev is required: Render sets NODE_ENV=production, which would
-    # otherwise skip typescript + prisma (they're devDependencies) and the
-    # build/generate steps would fail.
-    buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    # Sync the schema before traffic hits the new build.
-    preDeployCommand: npx prisma db push
-    startCommand: npm run start
+    # Build: install (incl. dev deps — Render sets NODE_ENV=production which
+    # would otherwise skip typescript/prisma), generate client, compile,
+    # create the schema, and seed admin + demo data. Seed is best-effort.
+    buildCommand: >-
+      npm install --include=dev &&
+      npx prisma generate &&
+      npm run build &&
+      npx prisma db push &&
+      (npm run seed || echo 'seed skipped')
+    startCommand: npm start
     healthCheckPath: /health
     envVars:
+      # ── Core (required) ──
       - key: NODE_ENV
         value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: CORS_ORIGINS
+        value: "*"
       - key: DATABASE_URL
         fromDatabase:
           name: motoriq-db
           property: connectionString
       - key: JWT_SECRET
-        generateValue: true # Render generates a strong secret
-      - key: CORS_ORIGINS
-        value: "*" # tighten to your app/web origins in production
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
 
-      # ── Fuel data ── (aggregate = real UK retailer feeds)
-      - key: FUEL_FINDER_MODE
-        value: aggregate
-      - key: DEFAULT_TANK_LITRES
-        value: "45"
-
-      # ── Seeded admin account (change these) ──
+      # ── Admin/ops account (dummy — change ADMIN_PASSWORD) ──
       - key: ADMIN_EMAIL
         value: admin@motoriq.co.uk
       - key: ADMIN_PASSWORD
-        sync: false
+        value: ChangeMe_Admin_2026!
 
-      # ── Card issuer (Wallester) — leave WALLESTER_MOCK=true until live ──
+      # ── Fuel data (real UK retailer feeds; no key needed) ──
+      - key: FUEL_FINDER_MODE
+        value: aggregate
+      - key: FUEL_FINDER_BASE_URL
+        value: https://api.fuel-finder.service.gov.uk
+      - key: FUEL_FINDER_API_KEY
+        value: dummy-fuel-finder-key
+      - key: FUEL_RETAILER_FEEDS
+        value: ""
+      - key: FUEL_FEED_TTL_SECONDS
+        value: "900"
+      - key: DEFAULT_TANK_LITRES
+        value: "45"
+
+      # ── Wallester (virtual cards + wallet) — MOCK, dummy creds ──
       - key: WALLESTER_MOCK
         value: "true"
-      - key: WALLESTER_API_KEY
-        sync: false
-      - key: WALLESTER_PRIVATE_KEY
-        sync: false
-      - key: WALLESTER_PROGRAM_ID
-        sync: false
-      - key: WALLESTER_CARD_PRODUCT_ID
-        sync: false
+      - key: WALLESTER_BASE_URL
+        value: https://api.wallester.com
+      - key: WALLESTER_API_VERSION
+        value: "6.0"
       - key: WALLESTER_AUDIENCE_ID
-        sync: false
+        value: dummy-audience-id
+      - key: WALLESTER_API_KEY
+        value: dummy-wallester-api-key
+      - key: WALLESTER_PRIVATE_KEY
+        value: ""
+      - key: WALLESTER_PROGRAM_ID
+        value: dummy-program-id
+      - key: WALLESTER_CARD_PRODUCT_ID
+        value: dummy-card-product-id
+      - key: WALLESTER_DEFAULT_CURRENCY
+        value: GBP
 
-      # ── AI insights (Claude) — optional ──
+      # ── AI savings insights (Claude) — empty = rule-based fallback ──
       - key: ANTHROPIC_API_KEY
-        sync: false
+        value: ""
       - key: AI_INSIGHTS_MODEL
         value: claude-opus-4-8
 
-      # ── Push notifications (FCM) — optional; mock until set ──
+      # ── Push notifications (FCM) — MOCK, dummy creds ──
       - key: PUSH_PROVIDER
         value: mock
       - key: FCM_PROJECT_ID
-        sync: false
+        value: dummy-fcm-project
       - key: FCM_CLIENT_EMAIL
-        sync: false
+        value: dummy@motoriq.iam.gserviceaccount.com
       - key: FCM_PRIVATE_KEY
-        sync: false
+        value: ""
