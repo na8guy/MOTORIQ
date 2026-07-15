@@ -1,0 +1,273 @@
+// MOTORIQ data model
+// "The Smart Membership for Cheaper Driving"
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Users & auth ───────────────────────────
+
+enum Tier {
+  FREE
+  PLUS
+  DRIVE
+  DRIVE_PLUS
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  phone        String?
+  tier         Tier     @default(FREE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vehicles      Vehicle[]
+  reminders     Reminder[]
+  wallet        Wallet?
+  cards         Card[]
+  subscription  Subscription?
+  savings       SavingsRecord[]
+  refreshTokens RefreshToken[]
+  referralsMade Referral[]      @relation("Referrer")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────── Vehicles ───────────────────────────
+
+enum FuelType {
+  PETROL
+  DIESEL
+  ELECTRIC
+  HYBRID
+  PLUGIN_HYBRID
+  LPG
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  registration String
+  make         String?
+  model        String?
+  year         Int?
+  fuelType     FuelType @default(PETROL)
+  mileage      Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reminders Reminder[]
+
+  @@unique([userId, registration])
+  @@index([userId])
+  @@map("vehicles")
+}
+
+// ─────────────────────────── Reminders ───────────────────────────
+
+enum ReminderType {
+  MOT
+  ROAD_TAX
+  SERVICE
+  INSURANCE
+  BREAKDOWN
+  OTHER
+}
+
+model Reminder {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String?
+  vehicle   Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  type      ReminderType
+  dueDate   DateTime
+  note      String?
+  completed Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([dueDate])
+  @@map("reminders")
+}
+
+// ─────────────────────────── Wallet & cards ───────────────────────────
+
+model Wallet {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Balance held in minor units (pence) to avoid float errors.
+  balanceMinor       Int      @default(0)
+  currency           String   @default("GBP")
+  // External account reference at the card issuer (Wallester).
+  wallesterAccountId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+enum TxnType {
+  TOPUP
+  SPEND
+  REWARD
+  REFUND
+  SUBSCRIPTION
+  ADJUSTMENT
+}
+
+enum TxnStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+model WalletTransaction {
+  id          String    @id @default(cuid())
+  walletId    String
+  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type        TxnType
+  status      TxnStatus @default(COMPLETED)
+  amountMinor Int // signed: credits positive, debits negative
+  currency    String    @default("GBP")
+  description String?
+  reference   String?   @unique // idempotency / external ref
+  createdAt   DateTime  @default(now())
+
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+enum CardStatus {
+  PENDING
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+model Card {
+  id              String     @id @default(cuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallesterCardId String?    @unique
+  last4           String?
+  brand           String     @default("Mastercard")
+  status          CardStatus @default(PENDING)
+  virtual         Boolean    @default(true)
+  expiryMonth     Int?
+  expiryYear      Int?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([userId])
+  @@map("cards")
+}
+
+// ─────────────────────────── Subscriptions ───────────────────────────
+
+enum SubPlan {
+  FREE
+  PLUS
+  DRIVE
+  DRIVE_PLUS
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+model Subscription {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan           SubPlan   @default(FREE)
+  status         SubStatus @default(ACTIVE)
+  // For DRIVE tiers: the monthly mileage package (500 / 1000 / 1500).
+  mileagePackage Int?
+  priceMinor     Int       @default(0) // monthly price in pence
+  startedAt      DateTime  @default(now())
+  renewsAt       DateTime?
+  cancelledAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@map("subscriptions")
+}
+
+// ─────────────────────────── Savings & rewards ───────────────────────────
+
+enum SavingsCategory {
+  FUEL
+  EV_CHARGING
+  INSURANCE
+  SERVICE
+  MOT
+  CASHBACK
+  OTHER
+}
+
+model SavingsRecord {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    SavingsCategory
+  amountMinor Int // amount saved, in pence
+  description String?
+  occurredAt  DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  @@index([userId])
+  @@map("savings_records")
+}
+
+// ─────────────────────────── Referrals ───────────────────────────
+
+enum ReferralStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+}
+
+model Referral {
+  id           String         @id @default(cuid())
+  referrerId   String
+  referrer     User           @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  code         String         @unique
+  refereeEmail String?
+  status       ReferralStatus @default(PENDING)
+  rewardMinor  Int            @default(1000) // Give £10 / Get £10
+  createdAt    DateTime       @default(now())
+  completedAt  DateTime?
+
+  @@index([referrerId])
+  @@map("referrals")
+}
