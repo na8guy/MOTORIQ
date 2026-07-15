@@ -1,0 +1,12 @@
+{
+  "name": "motoriq",
+  "private": true,
+  "description": "Root shim so Render (or any host) can build and run the backend from the repo root, even when the service Root Directory is not set to `backend`.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "postinstall": "cd backend && npm install --include=dev && npx prisma generate && npm run build",
+    "start": "cd backend && (npx prisma db push || echo 'prisma db push skipped') && node dist/server.js"
+  }
+}
