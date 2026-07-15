@@ -5,6 +5,7 @@ import 'dashboard_tab.dart';
 import 'wallet_tab.dart';
 import 'vehicles_tab.dart';
 import 'fuel_tab.dart';
+import 'more_tab.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,8 +20,9 @@ class _HomeScreenState extends State<HomeScreen> {
   static const _tabs = [
     DashboardTab(),
     WalletTab(),
-    VehiclesTab(),
     FuelTab(),
+    VehiclesTab(),
+    MoreTab(),
   ];
 
   @override
@@ -40,13 +42,17 @@ class _HomeScreenState extends State<HomeScreen> {
               selectedIcon: Icon(Icons.account_balance_wallet),
               label: 'Wallet'),
           NavigationDestination(
+              icon: Icon(Icons.local_gas_station_outlined),
+              selectedIcon: Icon(Icons.local_gas_station),
+              label: 'Fuel'),
+          NavigationDestination(
               icon: Icon(Icons.directions_car_outlined),
               selectedIcon: Icon(Icons.directions_car),
               label: 'Vehicles'),
           NavigationDestination(
-              icon: Icon(Icons.local_gas_station_outlined),
-              selectedIcon: Icon(Icons.local_gas_station),
-              label: 'Fuel'),
+              icon: Icon(Icons.grid_view_outlined),
+              selectedIcon: Icon(Icons.grid_view),
+              label: 'More'),
         ],
       ),
     );

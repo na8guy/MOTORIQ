@@ -200,8 +200,8 @@ class _CardsSection extends StatelessWidget {
                     trailing: Chip(
                       label: Text(c.status),
                       backgroundColor: c.status == 'ACTIVE'
-                          ? kBrandGreen.withOpacity(0.12)
-                          : Colors.orange.withOpacity(0.12),
+                          ? kBrandGreen.withValues(alpha: 0.12)
+                          : Colors.orange.withValues(alpha: 0.12),
                     ),
                   ),
                 ),
@@ -223,7 +223,7 @@ class _TxnTile extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: (credit ? kBrandGreen : Colors.redAccent)
-              .withOpacity(0.12),
+              .withValues(alpha: 0.12),
           child: Icon(credit ? Icons.arrow_downward : Icons.arrow_upward,
               color: credit ? kBrandGreen : Colors.redAccent, size: 20),
         ),

@@ -10,12 +10,18 @@ This repository contains a **working vertical slice** of the full product:
 |-----------|-------|----------|
 | **Backend API** | Node.js + TypeScript + Fastify + Prisma + PostgreSQL | [`backend/`](backend/) |
 | **Mobile app** | Flutter (Dart) | [`app/`](app/) |
+| **Ops dashboard** | Served at `GET /admin` (single-page web UI) | [`backend/src/modules/admin`](backend/src/modules/admin/) |
 | **Virtual cards + fuel wallets** | Wallester Card Issuing API | [`backend/src/integrations/wallester`](backend/src/integrations/wallester/) |
-| **Fuel & EV price data** | UK Fuel Finder (DESNZ) | [`backend/src/integrations/fuelfinder`](backend/src/integrations/fuelfinder/) |
+| **Fuel & EV price data** | UK retailer open-data feed aggregator | [`backend/src/integrations/fuelfinder`](backend/src/integrations/fuelfinder/) |
+| **AI savings insights** | Claude (`claude-opus-4-8`) | [`backend/src/integrations/ai`](backend/src/integrations/ai/) |
+| **Push notifications** | Firebase Cloud Messaging | [`backend/src/integrations/push`](backend/src/integrations/push/) |
 
-Both integrations ship with a **mock mode** (enabled by default) so the entire stack runs
-end-to-end without live credentials. Flip `WALLESTER_MOCK` / `FUEL_FINDER_MOCK` to `false`
-and supply keys to go live.
+Every integration ships with a **mock/safe default** so the whole stack runs end-to-end
+without credentials. Fuel prices default to `mock`; set `FUEL_FINDER_MODE=aggregate` for
+**real live UK retailer prices** (Asda, BP, Sainsbury's, Tesco, Morrisons, Esso, …).
+
+**Deploying to Render** (hosts the API + PostgreSQL): see [`DEPLOY-RENDER.md`](DEPLOY-RENDER.md)
+and the [`render.yaml`](render.yaml) blueprint.
 
 ---
 
@@ -45,6 +51,13 @@ Flutter app  ──HTTPS/REST──▶  Fastify API  ──▶  PostgreSQL (Pris
 | Membership tiers (Free/Plus/Drive/Drive+) | `subscriptions` | Home |
 | Referral programme (Give £10 / Get £10) | `referrals` | — |
 | Cashback & rewards | `wallet` (REWARD txns) + `savings` | Home |
+| Identity verification (KYC) — gates money flows | `kyc` | More → Identity |
+| Fraud mitigation (risk scoring, limits, velocity) | `fraud` | — (admin) |
+| AI fuel-savings engine (daily/weekly/monthly + AI tips) | `insights` | More → Fuel savings |
+| Ranked cheapest fuel + savings each + maps navigation | `fuel/ranked` | Fuel |
+| Push + in-app notifications | `notifications` | More → Notifications |
+| Admin/ops dashboard, review queue, KYC review, broadcast | `admin` + `/admin` UI | — (web) |
+| Membership / referrals / reminders (app-facing) | `subscriptions`/`referrals`/`reminders` | More |
 
 ---
 

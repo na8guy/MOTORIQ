@@ -26,9 +26,34 @@ const schema = z.object({
   WALLESTER_DEFAULT_CURRENCY: z.string().default('GBP'),
 
   // Fuel Finder
-  FUEL_FINDER_MOCK: z.coerce.boolean().default(true),
+  // mock      → bundled sample stations (no network)
+  // single    → one Fuel Finder REST endpoint (FUEL_FINDER_BASE_URL)
+  // aggregate → pull the UK scheme's public per-retailer JSON feeds
+  FUEL_FINDER_MODE: z.enum(['mock', 'single', 'aggregate']).default('mock'),
   FUEL_FINDER_BASE_URL: z.string().default('https://api.fuel-finder.service.gov.uk'),
   FUEL_FINDER_API_KEY: z.string().optional(),
+  // Comma-separated retailer feed URLs (used in aggregate mode). Defaults to
+  // the well-known UK CMA/Fuel Finder open-data feeds.
+  FUEL_RETAILER_FEEDS: z.string().optional(),
+  // Cache TTL for fetched feeds (seconds).
+  FUEL_FEED_TTL_SECONDS: z.coerce.number().default(900),
+  // Default tank size used when computing "save £X on a full tank".
+  DEFAULT_TANK_LITRES: z.coerce.number().default(45),
+
+  // AI savings insights (Claude). Optional — falls back to a rule-based
+  // narrative when no key is set.
+  ANTHROPIC_API_KEY: z.string().optional(),
+  AI_INSIGHTS_MODEL: z.string().default('claude-opus-4-8'),
+
+  // Push notifications (Firebase Cloud Messaging). mock logs instead of sending.
+  PUSH_PROVIDER: z.enum(['mock', 'fcm']).default('mock'),
+  FCM_PROJECT_ID: z.string().optional(),
+  FCM_CLIENT_EMAIL: z.string().optional(),
+  FCM_PRIVATE_KEY: z.string().optional(), // PEM, \n-escaped
+
+  // Admin seeding (used by `npm run seed`).
+  ADMIN_EMAIL: z.string().default('admin@motoriq.co.uk'),
+  ADMIN_PASSWORD: z.string().default('admin12345'),
 });
 
 const parsed = schema.safeParse(process.env);

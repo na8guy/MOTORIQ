@@ -103,7 +103,7 @@ class _VehiclesTabState extends State<VehiclesTab> {
                         child: Card(
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: kBrandBlue.withOpacity(0.1),
+                              backgroundColor: kBrandBlue.withValues(alpha: 0.1),
                               child: Icon(_iconFor(v.fuelType), color: kBrandBlue),
                             ),
                             title: Text(v.registration,
@@ -268,7 +268,7 @@ class _VehicleFormState extends State<_VehicleForm> {
               ]),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _fuelType,
+                initialValue: _fuelType,
                 decoration: const InputDecoration(labelText: 'Fuel type'),
                 items: _fuelTypes
                     .map((f) => DropdownMenuItem(value: f, child: Text(f)))

@@ -1,6 +1,8 @@
 import { prisma } from '../../lib/prisma.js';
 import { BadRequest, Conflict, NotFound } from '../../lib/errors.js';
 import { wallester } from '../../integrations/wallester/wallester.client.js';
+import { requireVerifiedKyc } from '../kyc/kyc.service.js';
+import { guard } from '../fraud/fraud.service.js';
 import type { TxnType } from '@prisma/client';
 
 /**
@@ -85,8 +87,21 @@ export async function topUp(params: {
   userId: string;
   amountMinor: number;
   reference: string;
+  ipAddress?: string;
+  deviceId?: string;
 }) {
   if (params.amountMinor <= 0) throw BadRequest('Top-up amount must be positive');
+  // Regulated money movement: require identity verification, then run
+  // fraud checks (throws on BLOCK).
+  await requireVerifiedKyc(params.userId);
+  await guard({
+    userId: params.userId,
+    kind: 'TOPUP',
+    amountMinor: params.amountMinor,
+    reference: params.reference,
+    ipAddress: params.ipAddress,
+    deviceId: params.deviceId,
+  });
   const wallet = await ensureWallet(params.userId);
 
   await wallester.topUp({
@@ -109,7 +124,18 @@ export async function spend(params: {
   amountMinor: number;
   description: string;
   reference?: string;
+  ipAddress?: string;
+  deviceId?: string;
 }) {
+  await requireVerifiedKyc(params.userId);
+  await guard({
+    userId: params.userId,
+    kind: 'SPEND',
+    amountMinor: Math.abs(params.amountMinor),
+    reference: params.reference,
+    ipAddress: params.ipAddress,
+    deviceId: params.deviceId,
+  });
   return applyTransaction({
     userId: params.userId,
     type: 'SPEND',

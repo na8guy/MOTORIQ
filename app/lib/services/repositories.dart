@@ -106,4 +106,120 @@ class FuelRepository {
     ) as List;
     return data.map((e) => FuelStation.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  /// Ranked cheapest stations for a fuel kind, with savings + navigation URLs.
+  Future<RankedResult> ranked({
+    required double lat,
+    required double lng,
+    required String kind,
+    int limit = 3,
+  }) async {
+    final data = await _api.get(
+      '/fuel/ranked?lat=$lat&lng=$lng&kind=$kind&limit=$limit',
+      auth: false,
+    ) as Map<String, dynamic>;
+    return RankedResult.fromJson(data);
+  }
+}
+
+class KycRepository {
+  KycRepository(this._api);
+  final ApiClient _api;
+
+  Future<KycProfile> get() async {
+    final data = await _api.get('/kyc') as Map<String, dynamic>;
+    return KycProfile.fromJson(data);
+  }
+
+  Future<KycProfile> submit(Map<String, dynamic> body) async {
+    final data = await _api.post('/kyc', body: body) as Map<String, dynamic>;
+    return KycProfile.fromJson(data);
+  }
+}
+
+class SubscriptionRepository {
+  SubscriptionRepository(this._api);
+  final ApiClient _api;
+
+  Future<List<Plan>> plans() async {
+    final data = await _api.get('/subscriptions/plans', auth: false) as List;
+    return data.map((e) => Plan.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Map<String, dynamic>?> current() async {
+    final data = await _api.get('/subscriptions/me');
+    return data as Map<String, dynamic>?;
+  }
+
+  Future<void> subscribe(String plan, {int? mileagePackage}) =>
+      _api.post('/subscriptions', body: {
+        'plan': plan,
+        if (mileagePackage != null) 'mileagePackage': mileagePackage,
+      });
+
+  Future<void> cancel() => _api.post('/subscriptions/cancel');
+}
+
+class ReferralRepository {
+  ReferralRepository(this._api);
+  final ApiClient _api;
+
+  Future<List<Referral>> list() async {
+    final data = await _api.get('/referrals') as List;
+    return data.map((e) => Referral.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Referral> create({String? refereeEmail}) async {
+    final data = await _api.post('/referrals',
+        body: {if (refereeEmail != null && refereeEmail.isNotEmpty) 'refereeEmail': refereeEmail}) as Map<String, dynamic>;
+    return Referral.fromJson(data);
+  }
+}
+
+class ReminderRepository {
+  ReminderRepository(this._api);
+  final ApiClient _api;
+
+  Future<List<Reminder>> list() async {
+    final data = await _api.get('/reminders') as List;
+    return data.map((e) => Reminder.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<Reminder> create(Map<String, dynamic> body) async {
+    final data = await _api.post('/reminders', body: body) as Map<String, dynamic>;
+    return Reminder.fromJson(data);
+  }
+
+  Future<void> complete(String id) => _api.patch('/reminders/$id', body: {'completed': true});
+  Future<void> delete(String id) => _api.delete('/reminders/$id');
+}
+
+class NotificationRepository {
+  NotificationRepository(this._api);
+  final ApiClient _api;
+
+  Future<({int unread, List<AppNotification> items})> inbox() async {
+    final data = await _api.get('/notifications') as Map<String, dynamic>;
+    final items = ((data['items'] as List?) ?? [])
+        .map((e) => AppNotification.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return (unread: (data['unreadCount'] as int?) ?? 0, items: items);
+  }
+
+  Future<void> markAllRead() => _api.post('/notifications/read-all');
+  Future<void> registerDevice(String token, String platform) =>
+      _api.post('/notifications/devices', body: {'token': token, 'platform': platform});
+}
+
+class InsightsRepository {
+  InsightsRepository(this._api);
+  final ApiClient _api;
+
+  Future<SavingsInsight> ai({String period = 'monthly'}) async {
+    final data = await _api.get('/insights/ai?period=$period') as Map<String, dynamic>;
+    return SavingsInsight.fromJson(data);
+  }
+
+  Future<void> logPurchase(Map<String, dynamic> body) =>
+      _api.post('/insights/purchases', body: body);
 }

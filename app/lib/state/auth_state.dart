@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/models.dart';
 import '../services/api_client.dart';
 import '../services/repositories.dart';
@@ -30,11 +32,32 @@ class AuthState extends ChangeNotifier {
     try {
       _user = await _auth.me();
       _status = AuthStatus.authenticated;
+      unawaited(_registerDevice());
     } catch (_) {
       await _api.clearTokens();
       _status = AuthStatus.unauthenticated;
     }
     notifyListeners();
+  }
+
+  /// Register this install's push token so the backend can fan out
+  /// notifications. In production swap the generated id for
+  /// `FirebaseMessaging.instance.getToken()`.
+  Future<void> _registerDevice() async {
+    try {
+      const storage = FlutterSecureStorage();
+      var token = await storage.read(key: 'motoriq_device');
+      if (token == null) {
+        token = 'dev-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}';
+        await storage.write(key: 'motoriq_device', value: token);
+      }
+      final platform = switch (defaultTargetPlatform) {
+        TargetPlatform.iOS => 'IOS',
+        TargetPlatform.android => 'ANDROID',
+        _ => 'WEB',
+      };
+      await NotificationRepository(_api).registerDevice(token, platform);
+    } catch (_) {/* best effort */}
   }
 
   Future<bool> login(String email, String password) async {
@@ -75,6 +98,7 @@ class AuthState extends ChangeNotifier {
     try {
       _user = await action();
       _status = AuthStatus.authenticated;
+      unawaited(_registerDevice());
       notifyListeners();
       return true;
     } on ApiException catch (e) {

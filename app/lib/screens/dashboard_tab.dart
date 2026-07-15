@@ -181,7 +181,7 @@ class _FeatureRow extends StatelessWidget {
       child: Card(
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: kBrandBlue.withOpacity(0.1),
+            backgroundColor: kBrandBlue.withValues(alpha: 0.1),
             child: Icon(icon, color: kBrandBlue),
           ),
           title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),

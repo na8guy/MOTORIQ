@@ -16,6 +16,12 @@ import subscriptionsRoutes from './modules/subscriptions/subscriptions.routes.js
 import fuelRoutes from './modules/fuel/fuel.routes.js';
 import savingsRoutes from './modules/savings/savings.routes.js';
 import referralsRoutes from './modules/referrals/referrals.routes.js';
+import kycRoutes from './modules/kyc/kyc.routes.js';
+import fraudRoutes from './modules/fraud/fraud.routes.js';
+import insightsRoutes from './modules/insights/insights.routes.js';
+import notificationsRoutes from './modules/notifications/notifications.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
+import { ADMIN_DASHBOARD_HTML } from './modules/admin/admin.dashboard.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -41,28 +47,17 @@ export async function buildApp(): Promise<FastifyInstance> {
     time: new Date().toISOString(),
     integrations: {
       wallester: env.WALLESTER_MOCK ? 'mock' : 'live',
-      fuelFinder: env.FUEL_FINDER_MOCK ? 'mock' : 'live',
+      fuelFinder: env.FUEL_FINDER_MODE,
     },
   }));
 
-  // API v1
-  await app.register(
-    async (v1) => {
-      await v1.register(authRoutes, { prefix: '/auth' });
-      await v1.register(usersRoutes, { prefix: '/users' });
-      await v1.register(vehiclesRoutes, { prefix: '/vehicles' });
-      await v1.register(remindersRoutes, { prefix: '/reminders' });
-      await v1.register(walletRoutes, { prefix: '/wallet' });
-      await v1.register(cardsRoutes, { prefix: '/cards' });
-      await v1.register(subscriptionsRoutes, { prefix: '/subscriptions' });
-      await v1.register(fuelRoutes, { prefix: '/fuel' });
-      await v1.register(savingsRoutes, { prefix: '/savings' });
-      await v1.register(referralsRoutes, { prefix: '/referrals' });
-    },
-    { prefix: '/api/v1' },
-  );
+  // Ops dashboard (static single-page app, same-origin to /api/v1).
+  app.get('/admin', async (_req, reply) => {
+    reply.type('text/html').send(ADMIN_DASHBOARD_HTML);
+  });
 
   // Central error handler — maps app + validation errors to JSON.
+  // Registered BEFORE routes so every encapsulated context inherits it.
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
       reply.code(400).send({
@@ -92,6 +87,28 @@ export async function buildApp(): Promise<FastifyInstance> {
       error: { code: 'NOT_FOUND', message: `Route ${request.method} ${request.url} not found` },
     });
   });
+
+  // API v1 — registered after the handlers above so they are inherited.
+  await app.register(
+    async (v1) => {
+      await v1.register(authRoutes, { prefix: '/auth' });
+      await v1.register(usersRoutes, { prefix: '/users' });
+      await v1.register(vehiclesRoutes, { prefix: '/vehicles' });
+      await v1.register(remindersRoutes, { prefix: '/reminders' });
+      await v1.register(walletRoutes, { prefix: '/wallet' });
+      await v1.register(cardsRoutes, { prefix: '/cards' });
+      await v1.register(subscriptionsRoutes, { prefix: '/subscriptions' });
+      await v1.register(fuelRoutes, { prefix: '/fuel' });
+      await v1.register(savingsRoutes, { prefix: '/savings' });
+      await v1.register(referralsRoutes, { prefix: '/referrals' });
+      await v1.register(kycRoutes, { prefix: '/kyc' });
+      await v1.register(fraudRoutes, { prefix: '/fraud' });
+      await v1.register(insightsRoutes, { prefix: '/insights' });
+      await v1.register(notificationsRoutes, { prefix: '/notifications' });
+      await v1.register(adminRoutes, { prefix: '/admin' });
+    },
+    { prefix: '/api/v1' },
+  );
 
   return app;
 }

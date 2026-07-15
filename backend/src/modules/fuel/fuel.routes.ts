@@ -16,6 +16,11 @@ const cheapestQuery = nearbyQuery
   .pick({ lat: true, lng: true, radiusKm: true })
   .extend({ kind: z.enum(kinds) });
 
+const rankedQuery = cheapestQuery.extend({
+  limit: z.coerce.number().int().positive().max(10).default(3),
+  tankLitres: z.coerce.number().positive().max(200).optional(),
+});
+
 export default async function fuelRoutes(app: FastifyInstance): Promise<void> {
   // Fuel/EV price lookups. Public — powers the free tier.
   app.get('/stations', async (req) => {
@@ -38,6 +43,20 @@ export default async function fuelRoutes(app: FastifyInstance): Promise<void> {
       radiusKm: q.radiusKm,
     });
     return { kind: q.kind, station };
+  });
+
+  // Ranked cheapest stations (default top 3) with per-station savings vs the
+  // local average, extra-vs-cheapest, and a maps navigation URL.
+  app.get('/ranked', async (req) => {
+    const q = rankedQuery.parse(req.query);
+    return fuelFinder.ranked({
+      latitude: q.lat,
+      longitude: q.lng,
+      kind: q.kind as FuelKind,
+      radiusKm: q.radiusKm,
+      limit: q.limit,
+      tankLitres: q.tankLitres,
+    });
   });
 
   // EV convenience endpoint — chargers only.

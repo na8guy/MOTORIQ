@@ -4,6 +4,8 @@ import { prisma } from '../../lib/prisma.js';
 import { NotFound } from '../../lib/errors.js';
 import { wallester } from '../../integrations/wallester/wallester.client.js';
 import { ensureWallet } from '../wallet/wallet.service.js';
+import { requireVerifiedKyc } from '../kyc/kyc.service.js';
+import { guard } from '../fraud/fraud.service.js';
 
 const statusBody = z.object({ status: z.enum(['ACTIVE', 'FROZEN', 'CLOSED']) });
 
@@ -19,6 +21,8 @@ export default async function cardsRoutes(app: FastifyInstance): Promise<void> {
 
   // Issue a new MOTORIQ Mastercard (virtual) linked to the user's wallet.
   app.post('/', async (req, reply) => {
+    await requireVerifiedKyc(req.authUser.sub);
+    await guard({ userId: req.authUser.sub, kind: 'CARD_ISSUE' });
     const wallet = await ensureWallet(req.authUser.sub);
     const user = await prisma.user.findUnique({ where: { id: req.authUser.sub } });
     const name =

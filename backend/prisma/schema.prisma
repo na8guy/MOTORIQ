@@ -19,6 +19,11 @@ enum Tier {
   DRIVE_PLUS
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -27,6 +32,7 @@ model User {
   lastName     String?
   phone        String?
   tier         Tier     @default(FREE)
+  role         Role     @default(USER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -38,8 +44,50 @@ model User {
   savings       SavingsRecord[]
   refreshTokens RefreshToken[]
   referralsMade Referral[]      @relation("Referrer")
+  kyc           KycProfile?
+  riskEvents    RiskEvent[]
+  fuelPurchases FuelPurchase[]
+  deviceTokens  DeviceToken[]
+  notifications Notification[]
 
   @@map("users")
+}
+
+// ─────────────────────────── Push notifications ───────────────────────────
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+model DeviceToken {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String         @unique // FCM registration token
+  platform  DevicePlatform @default(ANDROID)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String   @default("GENERAL") // FUEL, KYC, WALLET, RISK, MARKETING…
+  data      Json? // arbitrary deep-link payload
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 model RefreshToken {
@@ -270,4 +318,106 @@ model Referral {
 
   @@index([referrerId])
   @@map("referrals")
+}
+
+// ─────────────────────────── KYC / identity ───────────────────────────
+// Because MOTORIQ moves money (prepaid wallet + Mastercard), members must
+// pass identity checks (KYC) before financial actions are enabled. The
+// banking partner (Wallester) performs the regulated AML/KYC; we collect
+// and mirror the verification state here.
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model KycProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          KycStatus @default(NOT_STARTED)
+  riskLevel       RiskLevel @default(LOW)
+  // Applicant data (store only what you need; encrypt/tokenise in production).
+  dateOfBirth     DateTime?
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  postcode        String?
+  country         String    @default("GB")
+  nationality     String?
+  documentType    String? // PASSPORT | DRIVING_LICENCE | NATIONAL_ID
+  documentNumber  String?
+  // External applicant reference at the KYC/issuer provider.
+  wallesterKycId  String?
+  rejectionReason String?
+  submittedAt     DateTime?
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("kyc_profiles")
+}
+
+// ─────────────────────────── Fraud mitigation ───────────────────────────
+
+enum RiskDecision {
+  ALLOW
+  REVIEW
+  BLOCK
+}
+
+model RiskEvent {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        String // e.g. TOPUP, SPEND, CARD_ISSUE, LOGIN
+  decision    RiskDecision
+  score       Int // 0 (safe) .. 100 (severe)
+  reasons     String[] // list of triggered rules
+  amountMinor Int?
+  reference   String?
+  ipAddress   String?
+  deviceId    String?
+  createdAt   DateTime     @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("risk_events")
+}
+
+// ─────────────────────────── Fuel purchases (AI savings engine) ───────────
+// Captures real fill-ups so the savings engine can compute how much a
+// member saved vs the local benchmark, and roll it up daily/weekly/monthly.
+
+model FuelPurchase {
+  id                    String   @id @default(cuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId             String?
+  fuelKind              String // E10 | E5 | B7 | SDV | ELECTRIC
+  litres                Float // (or kWh for ELECTRIC)
+  pricePencePerUnit     Float // what the member actually paid
+  totalMinor            Int // total spend in pence
+  stationBrand          String?
+  stationPostcode       String?
+  latitude              Float?
+  longitude             Float?
+  // Benchmark the engine compared against (area average) and computed saving.
+  benchmarkPencePerUnit Float?
+  savedMinor            Int      @default(0)
+  purchasedAt           DateTime @default(now())
+  createdAt             DateTime @default(now())
+
+  @@index([userId])
+  @@index([purchasedAt])
+  @@map("fuel_purchases")
 }

@@ -103,6 +103,54 @@ class WallesterClient {
     await this.call('POST', `/v1/cards/${cardId}/${action}`);
   }
 
+  // ── KYC / identity verification ──────────────────────────────
+  // The banking partner runs the regulated AML/KYC. We submit the
+  // applicant and poll status. In mock mode we auto-approve unless the
+  // applicant is under 18 (a simple deterministic rule for testing).
+
+  async submitKyc(params: {
+    externalId: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string; // ISO
+    country: string;
+    documentType: string;
+    documentNumber: string;
+  }): Promise<{ id: string; status: 'PENDING' | 'VERIFIED' | 'REJECTED'; reason?: string }> {
+    if (this.mock) {
+      const dob = new Date(params.dateOfBirth);
+      const age = (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000);
+      if (Number.isFinite(age) && age < 18) {
+        return { id: this.fakeId('kyc', params.externalId), status: 'REJECTED', reason: 'Applicant must be 18 or over' };
+      }
+      return { id: this.fakeId('kyc', params.externalId), status: 'VERIFIED' };
+    }
+    const res = await this.call<{ applicant: { id: string; status: string; reason?: string } }>(
+      'POST',
+      '/v1/kyc/applicants',
+      {
+        program_id: env.WALLESTER_PROGRAM_ID,
+        external_id: params.externalId,
+        first_name: params.firstName,
+        last_name: params.lastName,
+        date_of_birth: params.dateOfBirth,
+        country: params.country,
+        document: { type: params.documentType, number: params.documentNumber },
+      },
+    );
+    return {
+      id: res.applicant.id,
+      status: (res.applicant.status?.toUpperCase() as 'PENDING' | 'VERIFIED' | 'REJECTED') ?? 'PENDING',
+      reason: res.applicant.reason,
+    };
+  }
+
+  async getKycStatus(kycId: string): Promise<'PENDING' | 'VERIFIED' | 'REJECTED'> {
+    if (this.mock) return 'VERIFIED';
+    const res = await this.call<{ applicant: { status: string } }>('GET', `/v1/kyc/applicants/${kycId}`);
+    return (res.applicant.status?.toUpperCase() as 'PENDING' | 'VERIFIED' | 'REJECTED') ?? 'PENDING';
+  }
+
   // ── HTTP + signing ───────────────────────────────────────────
 
   private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
