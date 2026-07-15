@@ -67,13 +67,24 @@ services:
       - key: ADMIN_PASSWORD
         value: ChangeMe_Admin_2026!
 
-      # ── Fuel data (real UK retailer feeds; no key needed) ──
+      # ── Fuel data (aggregate = real UK retailer feeds, NO auth needed) ──
       - key: FUEL_FINDER_MODE
         value: aggregate
       - key: FUEL_FINDER_BASE_URL
         value: https://api.fuel-finder.service.gov.uk
+      # single-mode only (official gov.uk API): OAuth 2.0 client-credentials.
+      - key: FUEL_FINDER_CLIENT_ID
+        value: ""
+      - key: FUEL_FINDER_CLIENT_SECRET
+        value: ""
+      - key: FUEL_FINDER_TOKEN_URL
+        value: ""
+      - key: FUEL_FINDER_SCOPE
+        value: ""
+      - key: FUEL_FINDER_AUTH_STYLE
+        value: post
       - key: FUEL_FINDER_API_KEY
-        value: dummy-fuel-finder-key
+        value: ""
       - key: FUEL_RETAILER_FEEDS
         value: ""
       - key: FUEL_FEED_TTL_SECONDS

@@ -27,10 +27,20 @@ const schema = z.object({
 
   // Fuel Finder
   // mock      → bundled sample stations (no network)
-  // single    → one Fuel Finder REST endpoint (FUEL_FINDER_BASE_URL)
-  // aggregate → pull the UK scheme's public per-retailer JSON feeds
+  // single    → the official gov.uk Fuel Finder REST endpoint
+  // aggregate → pull the UK scheme's public per-retailer JSON feeds (no auth)
   FUEL_FINDER_MODE: z.enum(['mock', 'single', 'aggregate']).default('mock'),
   FUEL_FINDER_BASE_URL: z.string().default('https://api.fuel-finder.service.gov.uk'),
+  // Auth for `single` mode. The official Fuel Finder API uses OAuth 2.0
+  // client-credentials: set CLIENT_ID + CLIENT_SECRET + TOKEN_URL and the
+  // client fetches a bearer token automatically. FUEL_FINDER_API_KEY is only a
+  // fallback for a provider that issues a static bearer key instead.
+  FUEL_FINDER_CLIENT_ID: z.string().optional(),
+  FUEL_FINDER_CLIENT_SECRET: z.string().optional(),
+  FUEL_FINDER_TOKEN_URL: z.string().optional(),
+  FUEL_FINDER_SCOPE: z.string().optional(),
+  // 'post' (client_id/secret in the form body, default) or 'basic' (HTTP Basic).
+  FUEL_FINDER_AUTH_STYLE: z.enum(['post', 'basic']).default('post'),
   FUEL_FINDER_API_KEY: z.string().optional(),
   // Comma-separated retailer feed URLs (used in aggregate mode). Defaults to
   // the well-known UK CMA/Fuel Finder open-data feeds.

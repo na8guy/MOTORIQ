@@ -82,6 +82,7 @@ interface RawStation {
 class FuelFinderClient {
   private readonly mode = env.FUEL_FINDER_MODE;
   private cache: { at: number; stations: Station[] } | null = null;
+  private token: { value: string; expiresAt: number } | null = null;
 
   async nearby(params: {
     latitude: number;
@@ -181,9 +182,10 @@ class FuelFinderClient {
 
   private async loadSingle(): Promise<Station[]> {
     try {
+      const bearer = await this.authToken();
       const res = await request(`${env.FUEL_FINDER_BASE_URL}/v1/prices`, {
         method: 'GET',
-        headers: env.FUEL_FINDER_API_KEY ? { authorization: `Bearer ${env.FUEL_FINDER_API_KEY}` } : {},
+        headers: bearer ? { authorization: `Bearer ${bearer}` } : {},
       });
       if (res.statusCode >= 400) throw UpstreamError(`Fuel Finder responded ${res.statusCode}`);
       const data = (await res.body.json()) as RawFeed;
@@ -192,6 +194,54 @@ class FuelFinderClient {
       if (err instanceof Error && err.name === 'AppError') throw err;
       return [];
     }
+  }
+
+  /**
+   * Resolve a bearer token for `single` mode. Prefers OAuth 2.0
+   * client-credentials (client id/secret → token endpoint → access token,
+   * cached until expiry); falls back to a static API key if that's what your
+   * provider issued; returns null if no auth is configured.
+   */
+  private async authToken(): Promise<string | null> {
+    // Capture into locals so TS narrowing survives the intervening calls.
+    const clientId = env.FUEL_FINDER_CLIENT_ID;
+    const clientSecret = env.FUEL_FINDER_CLIENT_SECRET;
+    const tokenUrl = env.FUEL_FINDER_TOKEN_URL;
+
+    // OAuth 2.0 client-credentials.
+    if (clientId && clientSecret && tokenUrl) {
+      if (this.token && Date.now() < this.token.expiresAt - 60_000) return this.token.value;
+
+      const form = new URLSearchParams({ grant_type: 'client_credentials' });
+      if (env.FUEL_FINDER_SCOPE) form.set('scope', env.FUEL_FINDER_SCOPE);
+
+      const headers: Record<string, string> = { 'content-type': 'application/x-www-form-urlencoded' };
+      if (env.FUEL_FINDER_AUTH_STYLE === 'basic') {
+        const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+        headers.authorization = `Basic ${basic}`;
+      } else {
+        form.set('client_id', clientId);
+        form.set('client_secret', clientSecret);
+      }
+
+      const res = await request(tokenUrl, {
+        method: 'POST',
+        headers,
+        body: form.toString(),
+      });
+      if (res.statusCode >= 400) {
+        throw UpstreamError(`Fuel Finder token endpoint responded ${res.statusCode}`);
+      }
+      const json = (await res.body.json()) as { access_token: string; expires_in?: number };
+      this.token = {
+        value: json.access_token,
+        expiresAt: Date.now() + (json.expires_in ?? 3600) * 1000,
+      };
+      return this.token.value;
+    }
+
+    // Static API key fallback.
+    return env.FUEL_FINDER_API_KEY ?? null;
   }
 
   private async loadAggregate(): Promise<Station[]> {
