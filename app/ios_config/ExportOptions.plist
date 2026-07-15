@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ExportOptions for `flutter build ipa`.
+  Copy this to the app root (or pass with --export-options-plist) and set:
+    - teamID       : your Apple Developer Team ID (Xcode → Settings → Accounts,
+                     or developer.apple.com → Membership).
+    - method       : "development" for installing on your own registered device,
+                     "ad-hoc" for distributing to a list of registered devices,
+                     "app-store-connect" for TestFlight/App Store.
+  For a free Apple ID (personal team) you can only use "development" and the app
+  expires after 7 days.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>development</string>
+  <key>teamID</key>
+  <string>YOUR_TEAM_ID</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>stripSwiftSymbols</key>
+  <true/>
+  <key>compileBitcode</key>
+  <false/>
+  <key>destination</key>
+  <string>export</string>
+</dict>
+</plist>

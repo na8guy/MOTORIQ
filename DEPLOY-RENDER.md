@@ -3,9 +3,21 @@
 Render hosts **both** the backend API and the PostgreSQL database. Two ways:
 
 - **Blueprint (recommended):** commit [`render.yaml`](render.yaml), then in Render → **New → Blueprint** and select this repo. It creates the DB + web service and wires `DATABASE_URL` and a generated `JWT_SECRET` automatically.
-- **Manual:** create a **PostgreSQL** instance and a **Web Service** (root dir `backend`) and set the env vars below yourself.
+- **Manual:** create a **PostgreSQL** instance and a **Web Service** and set these in the service settings:
+  | Setting | Value |
+  |---|---|
+  | **Root Directory** | `backend` |
+  | **Build Command** | `npm install --include=dev && npx prisma generate && npm run build` |
+  | **Pre-Deploy Command** | `npx prisma db push` |
+  | **Start Command** | `npm start` |
+  | **Health Check Path** | `/health` |
 
-The service builds with `npm ci && npx prisma generate && npm run build`, syncs the schema in a **pre-deploy** step (`npx prisma db push`), and starts with `npm run start`. Health check: `GET /health`. Render sets `PORT` automatically — the app reads it.
+Render sets `PORT` automatically — the app reads it. `--include=dev` is required because Render sets `NODE_ENV=production`, which otherwise skips `typescript` + `prisma` (devDependencies) and the build fails.
+
+> ### ⚠️ Fixing `Couldn't find a package.json file in "/opt/render/project/src"` (running `yarn start`)
+> This means the service's **Root Directory is blank** (Render is looking at the repo root, where there is no `package.json`) and it fell back to the default `yarn start`. The API lives in **`backend/`**. Fix it one of two ways:
+> 1. **Set Root Directory to `backend`** in the service's **Settings**, set the Build/Start commands from the table above, and **Manual Deploy → Clear build cache & deploy**. *(Changing Root Directory alone isn't enough — also set the Build and Start commands, or it will still default to `yarn` with no build step.)*
+> 2. **Or delete the service and re-create it via Blueprint** (`render.yaml` already sets `rootDir: backend` and the correct commands).
 
 After the first deploy, seed the admin + demo data **once** from the service Shell:
 

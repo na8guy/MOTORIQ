@@ -15,7 +15,10 @@ services:
     runtime: node
     plan: free # bump for production
     rootDir: backend
-    buildCommand: npm ci && npx prisma generate && npm run build
+    # --include=dev is required: Render sets NODE_ENV=production, which would
+    # otherwise skip typescript + prisma (they're devDependencies) and the
+    # build/generate steps would fail.
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
     # Sync the schema before traffic hits the new build.
     preDeployCommand: npx prisma db push
     startCommand: npm run start
