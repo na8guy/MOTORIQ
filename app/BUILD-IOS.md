@@ -1,11 +1,49 @@
 # Building the MOTORIQ IPA for iPhone (iOS 26)
 
-> **Honest note:** I could not build the IPA inside the assistant's sandbox — it has
-> **no Flutter SDK, no `ios/` project, and no Apple code-signing identity**. A
-> device-installable IPA for a physical iPhone 14 Pro Max *requires* signing in with
-> your Apple ID (Apple ties the provisioning profile to your account + the device's
-> UDID), which only you can do. The good news: **this Mac already has Xcode 26.6**,
-> which supports iOS 26 — so you can build it here in a few minutes.
+## ✅ Status: the app compiles for iOS. Two things stand between you and an installable IPA.
+
+I generated the native `ios/` project, added the location/maps permissions, and **built
+the app all the way to an unsigned iOS archive** — so the Dart + native code is verified
+good (`flutter analyze` = 0 errors; `flutter build ios --simulator` = `✓ Built Runner.app`;
+`flutter build ipa --no-codesign` = `Runner.xcarchive`, 168 MB).
+
+The only two remaining blockers are environmental — **not code**:
+
+### 🔴 Blocker 1 — your project is in iCloud-synced `~/Documents`
+`~/Documents/MOTORIQ` is under macOS **iCloud "Desktop & Documents" sync**. Its File
+Provider stamps `com.apple.fileprovider.fpfs#P` / `com.apple.FinderInfo` xattrs onto build
+artifacts, and **`codesign` rejects them** (`resource fork, Finder information, or similar
+detritus not allowed`). This is why builds fail *inside* `~/Documents`. **Fix — move the
+project out of iCloud**, e.g.:
+```bash
+mkdir -p ~/Developer && mv ~/Documents/MOTORIQ ~/Developer/MOTORIQ
+```
+(or turn off System Settings → Apple ID → iCloud → Drive → "Desktop & Documents Folders").
+I already proved this works by building a copy at **`~/motoriq_ios_build`** (outside iCloud)
+— that build succeeded and produced `build/ios/archive/Runner.xcarchive`.
+
+### 🔴 Blocker 2 — no Apple code-signing identity
+A device-installable IPA *requires* signing with **your Apple ID** (Apple ties the
+provisioning profile to your account + the iPhone's UDID). I can't log into your Apple ID,
+so this final step is yours. A **free Apple ID works** for your own device (7-day expiry).
+
+---
+
+**Fastest way to finish from here** (Xcode 26.6 is installed and supports iOS 26):
+```bash
+# 1. Get the project out of iCloud (one-time)
+mv ~/Documents/MOTORIQ ~/Developer/MOTORIQ && cd ~/Developer/MOTORIQ/app
+# 2. Sign & install straight to the connected iPhone
+open ios/Runner.xcworkspace     # Signing & Capabilities → pick your Team, set a unique bundle id
+flutter run --release --dart-define=API_BASE_URL=https://<your-render>.onrender.com/api/v1
+```
+**Or** sign the archive I already built: open
+`~/motoriq_ios_build/build/ios/archive/Runner.xcarchive` in **Xcode → Window → Organizer →
+Distribute App → set your Team → export the `.ipa`.**
+
+---
+
+_Original setup notes below still apply._
 
 ## Prerequisites (one-time)
 1. **Xcode 26.6** — already installed. ✅

@@ -1,4 +1,4 @@
-package com.example.motoriq
+package com.motoriq.motoriq_app
 
 import io.flutter.embedding.android.FlutterActivity
 
