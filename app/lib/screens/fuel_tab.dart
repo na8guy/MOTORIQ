@@ -137,6 +137,14 @@ class _FuelTabState extends State<FuelTab> {
   /// no location, nowhere sells this fuel here, or the data itself is missing.
   String _emptyReason(RankedResult? data) {
     final pos = _pos;
+    // Mock data is a handful of London samples, so anywhere else comes back
+    // empty. Saying "no stations near you" there would be false — the area has
+    // forecourts; we just have no live data. Name the real cause.
+    if (data?.source == 'mock') {
+      return "We're not connected to live fuel prices right now, so we can't "
+          "show real prices near ${pos?.placeName ?? 'you'}. This is a problem "
+          'at our end, not with your location.';
+    }
     if (pos != null && !pos.isReal) {
       return '${pos.problem}, so we searched ${pos.placeName ?? 'central London'} instead. '
           'Turn on location to see prices where you actually are.';

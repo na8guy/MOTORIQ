@@ -1,0 +1,34 @@
+# GitGuardian configuration.
+#
+# The only exclusions here are for our password DENY-LIST and its tests — the
+# literals GitGuardian flags as "Generic Password" are the passwords we refuse
+# to let members use, plus the fixtures proving we refuse them. They are the
+# opposite of credentials, and they must stay readable in review.
+#
+# Nothing else is excluded, deliberately. This repo is PUBLIC: a real key here
+# is compromised the moment it is pushed. An alert channel full of false
+# positives is one nobody reads, which is how a genuine leak gets missed — so
+# the fix is to scope these out precisely, never to relax the scanner.
+#
+# If a real secret is ever committed: rotate it first (it is already burned),
+# then purge the history. Never just delete the line in a later commit.
+
+version: 2
+
+secret:
+  ignored-paths:
+    # Deny-list of common passwords, mirrored between API and app so the
+    # strength meter can never promise what the server rejects.
+    - backend/src/lib/password.ts
+    - app/lib/password_policy.dart
+    # Fixtures asserting each of those is rejected.
+    - app/test/password_policy_test.dart
+
+  ignored-matches:
+    - name: Common-password deny-list (backend)
+      match: "'password', 'password1', 'password123', 'passw0rd', 'p@ssw0rd', 'qwerty',"
+
+# NOTE: no detectors are disabled, on purpose. Suppressing a whole detector
+# class (e.g. high-entropy secrets, to quieten package-lock.json integrity
+# hashes) would also hide a genuinely leaked key on a public repo. Scope
+# exclusions to specific paths, never to a detector.

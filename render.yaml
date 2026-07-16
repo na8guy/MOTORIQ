@@ -120,6 +120,37 @@ services:
       - key: MOT_HISTORY_TOKEN_URL
         value: ""
 
+      # ── EV charging (Open Charge Map) ──
+      # WITHOUT THIS KEY the EV screen has no real data: it falls back to a
+      # handful of London samples, so anywhere outside London shows nothing.
+      # Free key: sign in at openchargemap.org → My Profile → My Apps →
+      # Register An Application.
+      # NOTE: OCM data is CC BY-SA 4.0 — attribution is shown in-app and is a
+      # condition of the licence. Review the licence for commercial use.
+      - key: OCM_API_KEY
+        value: ""
+
+      # ── Drive-time routing (OSRM) ──
+      # The public demo server is free and keyless, but its usage policy
+      # forbids heavy production traffic — self-host OSRM or use a paid router
+      # before real volume, and point OSRM_BASE_URL at it.
+      - key: ROUTING_ENABLED
+        value: "true"
+      - key: OSRM_BASE_URL
+        value: https://router.project-osrm.org
+
+      # ── Legal documents ──
+      # Bump the version when terms materially change: members whose accepted
+      # version is older must accept again (UK GDPR needs current consent).
+      - key: TERMS_VERSION
+        value: "2026-07-16"
+      - key: PRIVACY_VERSION
+        value: "2026-07-16"
+      - key: TERMS_URL
+        value: https://motoriq.co.uk/terms
+      - key: PRIVACY_URL
+        value: https://motoriq.co.uk/privacy
+
       # ── Wallester (virtual cards + wallet) — MOCK, dummy creds ──
       - key: WALLESTER_MOCK
         value: "true"

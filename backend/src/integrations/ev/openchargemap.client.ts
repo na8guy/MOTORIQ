@@ -5,6 +5,21 @@ import { env } from '../../config/env.js';
  * EV charging via Open Charge Map (openchargemap.org) — free, community-run,
  * with a free API key (My Profile → My Apps → Register Application).
  *
+ * LICENSING — read before shipping this commercially. OCM is a non-profit and
+ * its data is CC BY-SA 4.0:
+ *   • Attribution to OCM and the licence must be VISIBLE TO THE END USER. That
+ *     is rendered by _OcmAttribution in the app's ev_screen.dart; do not remove
+ *     it, or MOTORIQ is in breach of the licence it depends on.
+ *   • The API terms say not to use it for "unauthorised commercial purposes"
+ *     and to review the data licence before putting the data in a commercial
+ *     product. MOTORIQ is a paid membership, so this needs a decision — check
+ *     the licence and talk to OCM rather than assuming a free key is a
+ *     commercial licence.
+ *   • Share-alike may bite if we ever redistribute a derived dataset (as
+ *     opposed to displaying it).
+ *   • The admin reserves the right to ban excessive callers; maxresults > 250
+ *     is rate-limited. We cache and cap accordingly.
+ *
  * THE HONEST LIMITATION: unlike petrol, EV charging prices are not published as
  * open data anywhere in the UK. OCM has a `UsageCost` field, but it is FREE
  * TEXT written by contributors — "£0.45/kWh", "45p per kWh", "Free", "Parking

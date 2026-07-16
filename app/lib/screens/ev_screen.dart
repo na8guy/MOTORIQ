@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/models.dart';
 import '../services/api_client.dart';
@@ -128,6 +130,21 @@ class _EvScreenState extends State<EvScreen> {
                 }
                 final data = snap.data;
                 if (data == null || data.results.isEmpty) {
+                  // Say WHY there's nothing, and never imply an area has no
+                  // chargers when the truth is that we have no data for it.
+                  // On mock data the samples are London-only, so "no chargers
+                  // near Manchester" would be a plain lie — Manchester is full
+                  // of them; we just aren't connected to a source yet.
+                  if (data?.source == 'mock') {
+                    return _empty(
+                      Icons.link_off,
+                      'EV charging data not connected',
+                      "We're not connected to a live EV charging source yet, so we "
+                          "can't show real chargers near ${_pos?.placeName ?? 'you'}. "
+                          'This needs a free Open Charge Map API key on the server '
+                          '(OCM_API_KEY) — it is not a problem with your location.',
+                    );
+                  }
                   return _empty(
                     Icons.ev_station_outlined,
                     'No chargers found nearby',
@@ -158,6 +175,7 @@ class _EvScreenState extends State<EvScreen> {
                         onNavigate: () => _navigate(c),
                       ),
                     if (data.unpricedCount > 0) _UnpricedNote(count: data.unpricedCount),
+                    if (data.source == 'live') const _OcmAttribution(),
                   ],
                 );
               },
@@ -273,6 +291,57 @@ class _UnpricedNote extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Open Charge Map attribution.
+///
+/// NOT decoration — a condition of use. OCM data is CC BY-SA 4.0 and the API
+/// terms require the data provider attribution and licence to be "visible to
+/// the end user". Removing this would put MOTORIQ in breach of the licence it
+/// relies on, so it renders whenever live OCM data is shown.
+class _OcmAttribution extends StatelessWidget {
+  const _OcmAttribution();
+
+  Future<void> _open(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(fontSize: 11, color: Colors.grey.shade500);
+    final link = style.copyWith(
+      color: Colors.grey.shade600,
+      decoration: TextDecoration.underline,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Text.rich(
+        TextSpan(
+          style: style,
+          children: [
+            const TextSpan(text: 'Charging data from '),
+            TextSpan(
+              text: 'Open Charge Map',
+              style: link,
+              recognizer: TapGestureRecognizer()
+                ..onTap = () => _open('https://openchargemap.org'),
+            ),
+            const TextSpan(text: ' contributors, licensed under '),
+            TextSpan(
+              text: 'CC BY-SA 4.0',
+              style: link,
+              recognizer: TapGestureRecognizer()
+                ..onTap = () => _open('https://creativecommons.org/licenses/by-sa/4.0/'),
+            ),
+            const TextSpan(text: '.'),
+          ],
+        ),
       ),
     );
   }
