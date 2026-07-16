@@ -19,16 +19,39 @@ class AuthRepository {
     required String password,
     String? firstName,
     String? lastName,
+    // The API rejects registration unless both are true — consent must be
+    // actively given, so these are required arguments, not defaulted flags.
+    required bool acceptTerms,
+    required bool acceptPrivacy,
+    bool marketingOptIn = false,
   }) async {
     final data = await _api.post('/auth/register', auth: false, body: {
       'email': email,
       'password': password,
       if (firstName != null && firstName.isNotEmpty) 'firstName': firstName,
       if (lastName != null && lastName.isNotEmpty) 'lastName': lastName,
+      'acceptTerms': acceptTerms,
+      'acceptPrivacy': acceptPrivacy,
+      'marketingOptIn': marketingOptIn,
     });
     await _api.setTokens(data['accessToken'] as String, data['refreshToken'] as String);
     return AppUser.fromJson(data['user'] as Map<String, dynamic>);
   }
+
+  /// The Terms and Privacy Policy URLs and versions currently in force.
+  Future<LegalDocs> legal() async {
+    final data = await _api.get('/auth/legal', auth: false) as Map<String, dynamic>;
+    return LegalDocs.fromJson(data);
+  }
+
+  /// Start a password reset. Always succeeds, whether or not the address has an
+  /// account — the API deliberately won't reveal which.
+  Future<void> forgotPassword(String email) =>
+      _api.post('/auth/forgot-password', auth: false, body: {'email': email});
+
+  /// Finish a reset with the token from the emailed link.
+  Future<void> resetPassword(String token, String password) => _api
+      .post('/auth/reset-password', auth: false, body: {'token': token, 'password': password});
 
   Future<AppUser> me() async {
     final data = await _api.get('/users/me') as Map<String, dynamic>;
@@ -144,6 +167,85 @@ class FuelRepository {
     ) as Map<String, dynamic>;
     return RankedResult.fromJson(data);
   }
+}
+
+/// EV charging. Mirrors FuelRepository — see the backend's ev.service for why
+/// some chargers have no price.
+class EvRepository {
+  EvRepository(this._api);
+  final ApiClient _api;
+
+  Future<RankedChargerResult> ranked({
+    required double lat,
+    required double lng,
+    int limit = 3,
+    double radiusKm = 15,
+    double? minPowerKw,
+  }) async {
+    final q = <String>[
+      'lat=$lat',
+      'lng=$lng',
+      'limit=$limit',
+      'radiusKm=$radiusKm',
+      if (minPowerKw != null) 'minPowerKw=$minPowerKw',
+    ].join('&');
+    final data = await _api.get('/ev/ranked?$q') as Map<String, dynamic>;
+    return RankedChargerResult.fromJson(data);
+  }
+}
+
+/// Fill-up intents and their confirmation.
+///
+/// Tapping "Navigate here" records an INTENT, which counts for nothing until a
+/// card transaction matches it or the member confirms. This is what keeps the
+/// savings figure honest.
+class FillUpRepository {
+  FillUpRepository(this._api);
+  final ApiClient _api;
+
+  /// Record that the member set off for a station.
+  Future<void> recordIntent({
+    required String fuelKind,
+    required double pricePencePerUnit,
+    double? benchmarkPencePerUnit,
+    double? estimatedLitres,
+    String? siteId,
+    String? stationBrand,
+    String? stationPostcode,
+    double? lat,
+    double? lng,
+  }) =>
+      _api.post('/insights/intents', body: {
+        'fuelKind': fuelKind,
+        'pricePencePerUnit': pricePencePerUnit,
+        if (benchmarkPencePerUnit != null) 'benchmarkPencePerUnit': benchmarkPencePerUnit,
+        if (estimatedLitres != null) 'estimatedLitres': estimatedLitres,
+        if (siteId != null && siteId.isNotEmpty) 'siteId': siteId,
+        if (stationBrand != null) 'stationBrand': stationBrand,
+        if (stationPostcode != null && stationPostcode.isNotEmpty)
+          'stationPostcode': stationPostcode,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
+      });
+
+  /// Fill-ups waiting on a yes/no.
+  Future<List<PendingFillUp>> pending() async {
+    final data = await _api.get('/insights/intents/pending') as List;
+    return data.map((e) => PendingFillUp.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  /// Answer "did you fill up?". [actualLitres] corrects our estimate.
+  Future<void> confirm(
+    String id, {
+    required bool filledUp,
+    double? actualLitres,
+    double? actualPricePence,
+  }) =>
+      _api.post('/insights/intents/$id/confirm', body: {
+        'filledUp': filledUp,
+        if (actualLitres != null) 'actualLitres': actualLitres,
+        if (actualPricePence != null) 'actualPricePence': actualPricePence,
+      });
 }
 
 class KycRepository {

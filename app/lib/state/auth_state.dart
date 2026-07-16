@@ -69,12 +69,18 @@ class AuthState extends ChangeNotifier {
     required String password,
     String? firstName,
     String? lastName,
+    required bool acceptTerms,
+    required bool acceptPrivacy,
+    bool marketingOptIn = false,
   }) async {
     return _run(() => _auth.register(
           email: email,
           password: password,
           firstName: firstName,
           lastName: lastName,
+          acceptTerms: acceptTerms,
+          acceptPrivacy: acceptPrivacy,
+          marketingOptIn: marketingOptIn,
         ));
   }
 
@@ -91,11 +97,15 @@ class AuthState extends ChangeNotifier {
     String? firstName,
     String? lastName,
     String? phone,
+    String? distanceUnit,
+    bool? marketingOptIn,
   }) async {
     _user = await _auth.updateMe({
       if (firstName != null) 'firstName': firstName,
       if (lastName != null) 'lastName': lastName,
       if (phone != null) 'phone': phone,
+      if (distanceUnit != null) 'distanceUnit': distanceUnit,
+      if (marketingOptIn != null) 'marketingOptIn': marketingOptIn,
     });
     notifyListeners();
   }

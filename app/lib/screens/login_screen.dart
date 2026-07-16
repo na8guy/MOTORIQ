@@ -1,8 +1,16 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../app_config.dart';
+import '../models/models.dart';
+import '../password_policy.dart';
+import '../services/api_client.dart';
+import '../services/repositories.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,17 +21,44 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController(text: 'demo@motoriq.co.uk');
-  final _password = TextEditingController(text: 'password123');
+  // Deliberately not prefilled: shipping demo credentials invites people to
+  // sign in as someone else, and "password123" is exactly what the password
+  // policy now rejects.
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _confirm = TextEditingController();
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
+
   bool _isRegister = false;
   bool _busy = false;
+  bool _obscure = true;
+  bool _obscureConfirm = true;
+
+  // UK GDPR: consent must be actively given, so these start false and the
+  // marketing one is separate from accepting the terms.
+  bool _acceptTerms = false;
+  bool _acceptPrivacy = false;
+  bool _marketingOptIn = false;
+
+  LegalDocs? _legal;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch the current terms URLs/versions so the links are always right.
+    AuthRepository(context.read<ApiClient>()).legal().then((l) {
+      if (mounted) setState(() => _legal = l);
+    }).catchError((_) {
+      // Non-fatal: fall back to the default URLs baked into LegalDocs.
+    });
+  }
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _confirm.dispose();
     _firstName.dispose();
     _lastName.dispose();
     super.dispose();
@@ -31,6 +66,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_isRegister && !(_acceptTerms && _acceptPrivacy)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please accept the Terms and Privacy Policy to continue')),
+      );
+      return;
+    }
+
     setState(() => _busy = true);
     final auth = context.read<AuthState>();
     final ok = _isRegister
@@ -39,13 +82,39 @@ class _LoginScreenState extends State<LoginScreen> {
             password: _password.text,
             firstName: _firstName.text.trim(),
             lastName: _lastName.text.trim(),
+            acceptTerms: _acceptTerms,
+            acceptPrivacy: _acceptPrivacy,
+            marketingOptIn: _marketingOptIn,
           )
         : await auth.login(_email.text.trim(), _password.text);
     if (!mounted) return;
     setState(() => _busy = false);
     if (!ok && auth.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.error!), duration: const Duration(seconds: 5)),
+      );
+    }
+  }
+
+  void _toggleMode() {
+    setState(() {
+      _isRegister = !_isRegister;
+      _confirm.clear();
+      // Consent is per-signup; never carry a stale tick across modes.
+      _acceptTerms = false;
+      _acceptPrivacy = false;
+      _marketingOptIn = false;
+    });
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(auth.error!), duration: const Duration(seconds: 5)));
+          .showSnackBar(SnackBar(content: Text("Couldn't open $url")));
     }
   }
 
@@ -123,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _firstName,
+                            textCapitalization: TextCapitalization.words,
                             decoration: const InputDecoration(labelText: 'First name'),
                           ),
                         ),
@@ -130,6 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _lastName,
+                            textCapitalization: TextCapitalization.words,
                             decoration: const InputDecoration(labelText: 'Last name'),
                           ),
                         ),
@@ -139,6 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
+                      autocorrect: false,
                       decoration: const InputDecoration(labelText: 'Email'),
                       validator: (v) =>
                           (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
@@ -146,12 +218,88 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _password,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Password'),
-                      validator: (v) =>
-                          (v == null || v.length < 8) ? 'Min 8 characters' : null,
+                      obscureText: _obscure,
+                      // Prompts the OS password manager to offer a strong one.
+                      autofillHints: [
+                        _isRegister ? AutofillHints.newPassword : AutofillHints.password,
+                      ],
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                        ),
+                      ),
+                      onChanged: (_) => setState(() {}), // live meter
+                      validator: (v) {
+                        final pw = v ?? '';
+                        if (!_isRegister) {
+                          // Never apply new-password rules at sign-in: an
+                          // existing password set under older rules must still
+                          // work, and the server decides anyway.
+                          return pw.isEmpty ? 'Enter your password' : null;
+                        }
+                        return passwordIssue(
+                          pw,
+                          email: _email.text.trim(),
+                          firstName: _firstName.text.trim(),
+                          lastName: _lastName.text.trim(),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 24),
+                    if (_isRegister) ...[
+                      const SizedBox(height: 8),
+                      _StrengthMeter(password: _password.text),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _confirm,
+                        obscureText: _obscureConfirm,
+                        autofillHints: const [AutofillHints.newPassword],
+                        decoration: InputDecoration(
+                          labelText: 'Confirm password',
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                                _obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () =>
+                                setState(() => _obscureConfirm = !_obscureConfirm),
+                          ),
+                        ),
+                        validator: (v) =>
+                            v != _password.text ? 'Passwords do not match' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _ConsentCheckbox(
+                        value: _acceptTerms,
+                        onChanged: (v) => setState(() => _acceptTerms = v ?? false),
+                        child: _linkText(
+                          'I accept the ',
+                          linkLabel: 'Terms & Conditions',
+                          url: _legal?.termsUrl ?? 'https://motoriq.co.uk/terms',
+                        ),
+                      ),
+                      _ConsentCheckbox(
+                        value: _acceptPrivacy,
+                        onChanged: (v) => setState(() => _acceptPrivacy = v ?? false),
+                        child: _linkText(
+                          'I have read the ',
+                          linkLabel: 'Privacy Policy',
+                          url: _legal?.privacyUrl ?? 'https://motoriq.co.uk/privacy',
+                          trailing:
+                              ' and consent to MOTORIQ processing my data as described.',
+                        ),
+                      ),
+                      // Separate and optional — bundling marketing into the
+                      // terms would not be freely given consent under UK GDPR.
+                      _ConsentCheckbox(
+                        value: _marketingOptIn,
+                        onChanged: (v) => setState(() => _marketingOptIn = v ?? false),
+                        child: Text(
+                          'Send me fuel savings tips and offers (optional)',
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
                     FilledButton(
                       onPressed: _busy ? null : _submit,
                       child: _busy
@@ -162,11 +310,21 @@ class _LoginScreenState extends State<LoginScreen> {
                                   strokeWidth: 2, color: Colors.white))
                           : Text(_isRegister ? 'Create account' : 'Sign in'),
                     ),
-                    const SizedBox(height: 12),
+                    if (!_isRegister)
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ForgotPasswordScreen(email: _email.text.trim()),
+                                  ),
+                                ),
+                        child: const Text('Forgot your password?'),
+                      ),
+                    const SizedBox(height: 4),
                     TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () => setState(() => _isRegister = !_isRegister),
+                      onPressed: _busy ? null : _toggleMode,
                       child: Text(_isRegister
                           ? 'Have an account? Sign in'
                           : 'New to MOTORIQ? Create an account'),
@@ -187,6 +345,130 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Consent text with a tappable link to the document itself. Members must be
+  /// able to actually read what they're agreeing to.
+  Widget _linkText(
+    String lead, {
+    required String linkLabel,
+    required String url,
+    String? trailing,
+  }) {
+    return Text.rich(
+      TextSpan(
+        style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.35),
+        children: [
+          TextSpan(text: lead),
+          TextSpan(
+            text: linkLabel,
+            style: const TextStyle(
+              color: kBrandBlue,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()..onTap = () => _openUrl(url),
+          ),
+          if (trailing != null) TextSpan(text: trailing),
+        ],
+      ),
+    );
+  }
+}
+
+/// Checkbox + tappable label. The whole row toggles, so nobody has to hit a
+/// 20-pixel box.
+class _ConsentCheckbox extends StatelessWidget {
+  const _ConsentCheckbox({
+    required this.value,
+    required this.onChanged,
+    required this.child,
+  });
+
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 24,
+              width: 24,
+              child: Checkbox(
+                value: value,
+                onChanged: onChanged,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Links inside need their own gesture area, so don't absorb taps here.
+            Expanded(child: Padding(padding: const EdgeInsets.only(top: 2), child: child)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Live password strength. Scored by the same rules as the API
+/// (lib/password_policy.dart mirrors backend lib/password.ts), so this can
+/// never call a password strong that the server then rejects.
+class _StrengthMeter extends StatelessWidget {
+  const _StrengthMeter({required this.password});
+  final String password;
+
+  static const _colors = [
+    Color(0xFFDC2626), // weak
+    Color(0xFFD97706), // fair
+    Color(0xFF65A30D), // good
+    kBrandGreen, // strong
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    if (password.isEmpty) {
+      return Text(
+        'At least $kPasswordMin characters. A few random words makes a strong, memorable password.',
+        style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+      );
+    }
+    final score = passwordScore(password);
+    final color = _colors[score];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            for (var i = 0; i < 4; i++) ...[
+              Expanded(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: i <= score ? color : const Color(0xFFE1E7EF),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              if (i < 3) const SizedBox(width: 4),
+            ],
+          ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          passwordScoreLabels[score],
+          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: color),
+        ),
+      ],
     );
   }
 }

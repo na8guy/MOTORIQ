@@ -89,6 +89,30 @@ const schema = z.object({
   MOT_HISTORY_TOKEN_URL: z.string().optional(),
   MOT_HISTORY_SCOPE: z.string().default('https://tapi.dvsa.gov.uk/.default'),
 
+  // ── EV charging (Open Charge Map) ──
+  // Free API key: openchargemap.org → My Profile → My Apps → Register
+  // Application. Without a key the API returns 403, so we fall back to samples.
+  // NOTE: OCM's cost field (UsageCost) is FREE TEXT ("£0.45/kWh", "Free",
+  // "Parking fees apply"), not a number — so price is only known for some
+  // sites. See openchargemap.client.ts.
+  OCM_API_KEY: z.string().optional(),
+  OCM_BASE_URL: z.string().default('https://api.openchargemap.io/v3/poi'),
+
+  // ── Drive-time routing ──
+  // OSRM's public demo server is free and needs no key, but its usage policy
+  // forbids heavy production traffic — host your own or swap in a paid router
+  // before real volume. Falls back to a distance estimate when unavailable.
+  ROUTING_ENABLED: envBool(true),
+  OSRM_BASE_URL: z.string().default('https://router.project-osrm.org'),
+
+  // ── Legal document versions ──
+  // Bump when the terms materially change: members whose accepted version is
+  // older must accept again (UK GDPR requires demonstrable, current consent).
+  TERMS_VERSION: z.string().default('2026-07-16'),
+  PRIVACY_VERSION: z.string().default('2026-07-16'),
+  TERMS_URL: z.string().default('https://motoriq.co.uk/terms'),
+  PRIVACY_URL: z.string().default('https://motoriq.co.uk/privacy'),
+
   // AI savings insights (Claude). Optional — falls back to a rule-based
   // narrative when no key is set.
   ANTHROPIC_API_KEY: z.string().optional(),

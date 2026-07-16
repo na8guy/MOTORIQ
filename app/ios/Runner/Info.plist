@@ -24,10 +24,15 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- iOS only answers canOpenURL for schemes listed here; an undeclared
+	     scheme silently reports "not installed", which would hide a maps app the
+	     member actually has. Every scheme MapsLauncher probes must appear here. -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>https</string>
 		<string>comgooglemaps</string>
+		<string>waze</string>
+		<string>citymapper</string>
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>

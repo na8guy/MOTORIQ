@@ -9,6 +9,7 @@ import 'home_screen.dart';
 import 'kyc_screen.dart';
 import 'insights_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 import 'subscriptions_screen.dart';
 import 'referrals_screen.dart';
 import 'reminders_screen.dart';
@@ -54,6 +55,8 @@ class _MoreTabState extends State<MoreTab> {
         const SizedBox(height: 16),
         _tile(Icons.person_outline, 'Your details', 'Name, phone & email',
             () => _open(const ProfileScreen())),
+        _tile(Icons.settings_outlined, 'Settings', 'Units, emails & legal',
+            () => _open(const SettingsScreen())),
         _tile(Icons.insights, 'Fuel savings', 'Your daily/weekly/monthly savings + AI tips',
             () => _open(const InsightsScreen())),
         _tile(Icons.workspace_premium, 'Membership', 'Free · Plus · Drive · Drive+',

@@ -34,8 +34,23 @@ model User {
   tier          Tier     @default(FREE)
   role          Role     @default(USER)
   emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+
+  // ── Consent (UK GDPR) ──
+  // Recorded per acceptance with the version accepted, because consent must be
+  // demonstrable and re-obtained when the terms materially change. Marketing is
+  // a separate opt-in: bundling it into "accept terms" is not freely given
+  // consent under UK GDPR, so it must never default to true.
+  termsAcceptedAt   DateTime?
+  termsVersion      String?
+  privacyAcceptedAt DateTime?
+  privacyVersion    String?
+  marketingOptIn    Boolean   @default(false)
+
+  /** Display units. UK drivers think in miles, so that's the default. */
+  distanceUnit DistanceUnit @default(MILES)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   vehicles      Vehicle[]
   reminders     Reminder[]
@@ -55,17 +70,31 @@ model User {
   @@map("users")
 }
 
+enum TokenPurpose {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
 model VerificationToken {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  token     String    @unique
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** Stored as a SHA-256 hash — see auth token helpers for why. */
+  token  String @unique
+  /** One table, two jobs: a reset token must never verify an email, or vice versa. */
+  purpose   TokenPurpose @default(EMAIL_VERIFY)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime     @default(now())
 
   @@index([userId])
+  @@index([purpose])
   @@map("verification_tokens")
+}
+
+enum DistanceUnit {
+  MILES
+  KM
 }
 
 // ─────────────────────────── Push notifications ───────────────────────────
@@ -455,7 +484,43 @@ model FuelPurchase {
   purchasedAt           DateTime @default(now())
   createdAt             DateTime @default(now())
 
+  // ── Did this fill-up actually happen? ──
+  // Tapping "Navigate here" only proves intent — the member may arrive and
+  // change their mind, or pay elsewhere. Counting intent as savings would make
+  // the headline number fiction, so a purchase only counts once CONFIRMED,
+  // either by a matched card transaction or by the member saying so.
+  status             PurchaseStatus @default(CONFIRMED)
+  confirmationSource ConfirmSource?
+  confirmedAt        DateTime?
+  /** A PENDING intent past this is swept to EXPIRED and never counted. */
+  expiresAt          DateTime?
+  /** Station identity, so a card transaction can be matched back to the intent. */
+  siteId             String?
+  /** Set when we've asked "did you fill up?", so we only ask once. */
+  promptedAt         DateTime?
+
   @@index([userId])
   @@index([purchasedAt])
+  @@index([status])
   @@map("fuel_purchases")
+}
+
+enum PurchaseStatus {
+  /// Intent recorded (member tapped Navigate). Never counted toward savings.
+  PENDING
+  /// Proven by a card match, or the member confirmed. Counts.
+  CONFIRMED
+  /// Member said they didn't buy. Never counted.
+  DECLINED
+  /// Nobody confirmed in time. Never counted.
+  EXPIRED
+}
+
+enum ConfirmSource {
+  /// A Wallester card transaction matched this station — authoritative.
+  CARD_MATCH
+  /// The member answered "yes, I filled up".
+  MEMBER
+  /// Logged by hand, or imported.
+  MANUAL
 }

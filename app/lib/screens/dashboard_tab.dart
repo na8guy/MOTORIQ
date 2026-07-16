@@ -4,6 +4,8 @@ import '../services/api_client.dart';
 import '../services/repositories.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
+import '../widgets/fill_up_confirm_card.dart';
+import 'ev_screen.dart';
 import 'home_screen.dart';
 import 'insights_screen.dart';
 import 'profile_screen.dart';
@@ -58,6 +60,8 @@ class DashboardTab extends StatelessWidget {
             _EmailVerifyBanner(email: user.email),
           ],
           const SizedBox(height: 16),
+          // "Did you fill up?" — savings only count once this is answered.
+          FillUpConfirmCard(onChanged: auth.refreshUser),
           _SavingsCard(
             savedMinor: user?.totalSavedMinor ?? 0,
             tier: user?.tier ?? 'FREE',
@@ -108,8 +112,8 @@ class DashboardTab extends StatelessWidget {
           _FeatureRow(
             icon: Icons.ev_station,
             title: 'EV charging savings',
-            subtitle: 'Cheapest chargers near you',
-            onTap: () => HomeNav.of(context).goToTab(HomeTab.fuel, evOnly: true),
+            subtitle: 'Cheapest chargers near you, ranked',
+            onTap: () => _push(context, const EvScreen()),
           ),
           _FeatureRow(
             icon: Icons.credit_card,

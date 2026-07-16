@@ -66,6 +66,12 @@ export async function recordPurchase(input: RecordPurchaseInput) {
       benchmarkPencePerUnit: benchmark ?? undefined,
       savedMinor,
       purchasedAt: input.purchasedAt ?? new Date(),
+      // Logged by hand, so it's a statement of fact rather than an intent —
+      // counts immediately. Intents created by "Navigate here" go through
+      // savings/purchase-confirmation.service.ts and start life PENDING.
+      status: 'CONFIRMED',
+      confirmationSource: 'MANUAL',
+      confirmedAt: new Date(),
     },
   });
 }
@@ -105,7 +111,10 @@ const HORIZON_DAYS: Record<Period, number> = { daily: 30, weekly: 84, monthly: 3
 export async function savingsSummary(userId: string, period: Period): Promise<SavingsSummary> {
   const since = new Date(Date.now() - HORIZON_DAYS[period] * 24 * 3600 * 1000);
   const purchases = await prisma.fuelPurchase.findMany({
-    where: { userId, purchasedAt: { gte: since } },
+    // CONFIRMED only. A PENDING row is just "they tapped Navigate" — counting
+    // it would report savings for fuel that may never have been bought. See
+    // savings/purchase-confirmation.service.ts.
+    where: { userId, status: 'CONFIRMED', purchasedAt: { gte: since } },
     orderBy: { purchasedAt: 'asc' },
   });
 

@@ -14,6 +14,7 @@ import walletRoutes from './modules/wallet/wallet.routes.js';
 import cardsRoutes from './modules/cards/cards.routes.js';
 import subscriptionsRoutes from './modules/subscriptions/subscriptions.routes.js';
 import fuelRoutes from './modules/fuel/fuel.routes.js';
+import evRoutes from './modules/ev/ev.routes.js';
 import savingsRoutes from './modules/savings/savings.routes.js';
 import referralsRoutes from './modules/referrals/referrals.routes.js';
 import kycRoutes from './modules/kyc/kyc.routes.js';
@@ -99,6 +100,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await v1.register(cardsRoutes, { prefix: '/cards' });
       await v1.register(subscriptionsRoutes, { prefix: '/subscriptions' });
       await v1.register(fuelRoutes, { prefix: '/fuel' });
+      await v1.register(evRoutes, { prefix: '/ev' });
       await v1.register(savingsRoutes, { prefix: '/savings' });
       await v1.register(referralsRoutes, { prefix: '/referrals' });
       await v1.register(kycRoutes, { prefix: '/kyc' });

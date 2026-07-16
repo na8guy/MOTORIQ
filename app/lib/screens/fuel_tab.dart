@@ -4,7 +4,10 @@ import '../models/models.dart';
 import '../services/api_client.dart';
 import '../services/repositories.dart';
 import '../services/location.dart';
+import '../services/maps_launcher.dart';
+import '../state/auth_state.dart';
 import '../theme.dart';
+import '../units.dart';
 import 'home_screen.dart';
 
 const _fuelKinds = {
@@ -92,11 +95,37 @@ class _FuelTabState extends State<FuelTab> {
     await _load(refresh: true);
   }
 
-  Future<void> _navigate(RankedStation s) async {
-    final ok = await LocationService.navigate(s.navigationUrl);
+  /// Open directions in the member's chosen maps app, and record that they set
+  /// off. That record is an INTENT: it counts for nothing until a card payment
+  /// matches it or they confirm they filled up, so the savings figure stays
+  /// honest even when someone arrives and changes their mind.
+  Future<void> _navigate(RankedStation s, RankedResult data) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Fire and forget — a failure to log intent must never block navigation.
+    FillUpRepository(context.read<ApiClient>())
+        .recordIntent(
+          fuelKind: _kind,
+          pricePencePerUnit: s.pricePence,
+          benchmarkPencePerUnit: data.averagePence,
+          estimatedLitres: data.tankLitres.toDouble(),
+          siteId: s.siteId,
+          stationBrand: s.brand,
+          stationPostcode: s.postcode,
+          lat: s.latitude,
+          lng: s.longitude,
+        )
+        .catchError((_) {/* savings just won't include this trip */});
+
+    if (!mounted) return;
+    final ok = await MapsLauncher.navigate(
+      context,
+      lat: s.latitude,
+      lng: s.longitude,
+      label: s.brand,
+    );
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Could not open maps')));
+      messenger.showSnackBar(const SnackBar(content: Text('Could not open a maps app')));
     }
   }
 
@@ -209,7 +238,14 @@ class _FuelTabState extends State<FuelTab> {
                       ),
                     ),
                   for (final s in data.results)
-                    _StationCard(station: s, unit: _unit, onNavigate: () => _navigate(s)),
+                    _StationCard(
+                      station: s,
+                      unit: _unit,
+                      distanceUnit: DistanceUnit.fromApi(
+                        context.watch<AuthState>().user?.distanceUnit,
+                      ),
+                      onNavigate: () => _navigate(s, data),
+                    ),
                 ],
               );
             },
@@ -400,15 +436,24 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _StationCard extends StatelessWidget {
-  const _StationCard({required this.station, required this.unit, required this.onNavigate});
+  const _StationCard({
+    required this.station,
+    required this.unit,
+    required this.distanceUnit,
+    required this.onNavigate,
+  });
   final RankedStation station;
   final String unit;
+  final DistanceUnit distanceUnit;
   final VoidCallback onNavigate;
 
   @override
   Widget build(BuildContext context) {
     final cheapest = station.rank == 1;
     final saving = station.savingVsAverageMinor;
+    final hours = station.hours;
+    // Only ever say "closed" when we actually know. Most sites publish nothing.
+    final closed = hours?.isOpen == false;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
@@ -444,8 +489,16 @@ class _StationCard extends StatelessWidget {
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                       Text(
                         [
-                          if (station.distanceKm != null)
-                            '${station.distanceKm!.toStringAsFixed(1)} km',
+                          // "4 min · 1.2 mi" — the drive time is what a member
+                          // actually wants; raw straight-line km wasn't useful.
+                          if (station.eta != null)
+                            formatEta(
+                              station.eta!.seconds,
+                              station.eta!.routed ? station.eta!.km : station.distanceKm,
+                              distanceUnit,
+                            )
+                          else if (station.distanceKm != null)
+                            formatDistanceKm(station.distanceKm!, distanceUnit),
                           if (station.postcode.isNotEmpty) station.postcode,
                         ].join('  ·  '),
                         style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
@@ -457,6 +510,31 @@ class _StationCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
               ],
             ),
+            // Opening hours, only when a source actually publishes them. Most
+            // forecourts don't, and inventing hours is worse than silence.
+            if (hours != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    closed ? Icons.schedule : Icons.check_circle_outline,
+                    size: 13,
+                    color: closed ? const Color(0xFFB91C1C) : kBrandGreen,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      hours.describe(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: closed ? const Color(0xFFB91C1C) : kBrandGreen,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -71,6 +71,32 @@ export function verificationEmail(params: { name: string; link: string }): {
   return { subject, html, text };
 }
 
+/** Branded password reset email. */
+export function passwordResetEmail(params: { name: string; link: string }): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const subject = 'Reset your MOTORIQ password';
+  const html = `
+  <div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
+    <div style="background:#0B2545;color:#fff;padding:20px;border-radius:14px 14px 0 0">
+      <span style="background:#1F6FEB;border-radius:8px;padding:4px 8px;font-weight:800">MOTORIQ</span>
+    </div>
+    <div style="border:1px solid #E1E7EF;border-top:0;border-radius:0 0 14px 14px;padding:24px">
+      <h2 style="margin:0 0 8px">Reset your password</h2>
+      <p style="color:#475569">Hi ${escapeHtml(params.name)}, we got a request to reset your MOTORIQ password. Choose a new one using the button below.</p>
+      <p style="margin:24px 0">
+        <a href="${params.link}" style="background:#1F6FEB;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:600;display:inline-block">Choose a new password</a>
+      </p>
+      <p style="color:#94a3b8;font-size:13px">Or paste this link into your browser:<br><a href="${params.link}" style="color:#1F6FEB">${params.link}</a></p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px">This link expires in 1 hour and can only be used once. <strong>If you didn't ask to reset your password, you can ignore this email</strong> — your password won't change and your account is safe.</p>
+    </div>
+  </div>`;
+  const text = `Reset your MOTORIQ password\n\nHi ${params.name}, choose a new password:\n${params.link}\n\nThis link expires in 1 hour and can only be used once.\nIf you didn't request this, ignore this email — your password won't change.`;
+  return { subject, html, text };
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,

@@ -1,6 +1,8 @@
 import { Agent, interceptors, request } from 'undici';
 import { env } from '../../config/env.js';
 import { UpstreamError } from '../../lib/errors.js';
+import { osmHours } from '../hours/osm-hours.client.js';
+import { driveTimes, estimateDriveTime } from '../routing/routing.client.js';
 import { SAMPLE_STATIONS } from './sample-data.js';
 
 /**
@@ -36,6 +38,25 @@ export interface Station {
   distanceKm?: number;
 }
 
+/** When a forecourt is open, where known. */
+export interface StationHours {
+  /** Raw OSM opening_hours text, e.g. "Mo-Sa 06:30-22:30". */
+  raw: string;
+  /** Open right now? null = we can't tell. Never guessed. */
+  isOpen: boolean | null;
+  /** ISO timestamp of the next open/close boundary. */
+  nextChange: string | null;
+  isAlwaysOpen: boolean;
+}
+
+/** How long it takes to drive there. */
+export interface StationEta {
+  seconds: number;
+  metres: number;
+  /** True = real route. False = estimated from straight-line distance. */
+  routed: boolean;
+}
+
 export interface RankedStation extends Station {
   rank: number;
   pricePence: number;
@@ -44,6 +65,10 @@ export interface RankedStation extends Station {
   // Extra you'd pay here vs the single cheapest option.
   extraVsCheapestMinor: number;
   navigationUrl: string; // opens turn-by-turn directions in any maps app
+  /** Null when nobody publishes hours for this site (roughly 2 in 3). */
+  hours: StationHours | null;
+  /** Null when routing is unavailable and distance is unknown. */
+  eta: StationEta | null;
 }
 
 /** 'live' = real retailer/Fuel Finder data. 'mock' = bundled samples. */
@@ -201,7 +226,22 @@ class FuelFinderClient {
     const averagePence = priced.reduce((sum, x) => sum + x.price, 0) / priced.length;
     const cheapestPence = priced[0]!.price;
 
-    const results: RankedStation[] = priced.slice(0, params.limit ?? 3).map((x, i) => ({
+    const top = priced.slice(0, params.limit ?? 3);
+
+    // Fetch hours and drive times for just the stations we're about to show —
+    // both are best-effort and resolve to null rather than failing the list.
+    const origin = { lat: params.latitude, lng: params.longitude };
+    const [hoursMap, etas] = await Promise.all([
+      osmHours
+        .forStations(top.map((x) => ({ id: x.s.siteId, lat: x.s.latitude, lng: x.s.longitude })))
+        .catch(() => new Map<string, StationHours>()),
+      driveTimes(
+        origin,
+        top.map((x) => ({ lat: x.s.latitude, lng: x.s.longitude })),
+      ).catch(() => top.map(() => null)),
+    ]);
+
+    const results: RankedStation[] = top.map((x, i) => ({
       ...x.s,
       rank: i + 1,
       pricePence: x.price,
@@ -209,6 +249,12 @@ class FuelFinderClient {
       savingVsAverageMinor: Math.max(0, Math.round((averagePence - x.price) * tankLitres)),
       extraVsCheapestMinor: Math.round((x.price - cheapestPence) * tankLitres),
       navigationUrl: navUrl(x.s.latitude, x.s.longitude),
+      hours: hoursMap.get(x.s.siteId) ?? null,
+      // Fall back to a distance-based estimate so members still get a rough
+      // "how far is that", flagged as estimated.
+      eta:
+        etas[i] ??
+        (x.s.distanceKm != null ? estimateDriveTime(x.s.distanceKm) : null),
     }));
 
     return {

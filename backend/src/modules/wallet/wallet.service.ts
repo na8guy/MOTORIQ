@@ -3,6 +3,7 @@ import { BadRequest, Conflict, NotFound } from '../../lib/errors.js';
 import { wallester } from '../../integrations/wallester/wallester.client.js';
 import { requireVerifiedKyc } from '../kyc/kyc.service.js';
 import { guard } from '../fraud/fraud.service.js';
+import { tryConfirmFromCard } from '../savings/purchase-confirmation.service.js';
 import type { TxnType } from '@prisma/client';
 
 /**
@@ -59,7 +60,7 @@ export async function applyTransaction(params: {
   const newBalance = wallet.balanceMinor + params.amountMinor;
   if (newBalance < 0) throw BadRequest('Insufficient wallet balance');
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const txn = await tx.walletTransaction.create({
       data: {
         walletId: wallet.id,
@@ -77,6 +78,21 @@ export async function applyTransaction(params: {
     });
     return { txn, wallet: updated };
   });
+
+  // A card spend is the strongest evidence a fill-up actually happened: money
+  // moved at that merchant. If it matches an intent the member is on their way
+  // to, confirm it now and skip asking them entirely. Deliberately outside the
+  // transaction and non-fatal — a matching failure must never fail the payment.
+  if (params.type === 'SPEND' && params.amountMinor < 0) {
+    tryConfirmFromCard({
+      userId: params.userId,
+      merchantName: params.description,
+      amountMinor: Math.abs(params.amountMinor),
+      occurredAt: result.txn.createdAt,
+    }).catch((err) => console.warn('[wallet] purchase match failed:', err));
+  }
+
+  return result;
 }
 
 /**

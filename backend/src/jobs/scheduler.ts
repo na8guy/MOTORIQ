@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { notify } from '../modules/notifications/notifications.service.js';
+import { sweepIntents } from '../modules/savings/purchase-confirmation.service.js';
 import { refreshAllVehicles } from '../modules/vehicles/vehicle-sync.service.js';
 
 /**
@@ -19,7 +20,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Warn at these distances from the due date. */
 const WARN_DAYS = [30, 7, 1];
 
-export async function runDailyJobs(): Promise<{ refreshed: number; notified: number }> {
+export async function runDailyJobs(): Promise<{
+  refreshed: number;
+  notified: number;
+  prompted: number;
+  expired: number;
+}> {
   const started = Date.now();
 
   // 1. Pull fresh MOT/tax dates from DVLA/DVSA.
@@ -28,11 +34,16 @@ export async function runDailyJobs(): Promise<{ refreshed: number; notified: num
   // 2. Notify on anything due soon.
   const notified = await notifyDueReminders();
 
+  // 3. Ask about fill-ups we can't confirm, and expire the forgotten ones so
+  //    unproven intents never leak into the savings figures.
+  const { prompted, expired } = await sweepIntents();
+
   console.log(
     `[jobs] daily run complete in ${Math.round((Date.now() - started) / 1000)}s — ` +
-      `${synced} vehicle(s) refreshed, ${notified} reminder(s) notified`,
+      `${synced} vehicle(s) refreshed, ${notified} reminder(s) notified, ` +
+      `${prompted} fill-up(s) queried, ${expired} expired`,
   );
-  return { refreshed: synced, notified };
+  return { refreshed: synced, notified, prompted, expired };
 }
 
 async function notifyDueReminders(): Promise<number> {
