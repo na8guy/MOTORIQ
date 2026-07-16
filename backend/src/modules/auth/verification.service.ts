@@ -23,9 +23,18 @@ export async function sendVerification(user: {
   const link = `${base}/api/v1/auth/verify?token=${token}`;
   const email = verificationEmail({ name: user.firstName ?? 'there', link });
   try {
-    await sendEmail({ to: user.email, ...email });
-  } catch {
-    // Don't fail signup if the email provider hiccups; the user can resend.
+    const res = await sendEmail({ to: user.email, ...email });
+    // eslint-disable-next-line no-console
+    console.log(
+      res.sent
+        ? `[verify] sent to ${user.email} (resend id ${res.id})`
+        : `[verify] NOT sent to ${user.email} — RESEND_API_KEY unset (mock mode)`,
+    );
+  } catch (err) {
+    // Don't fail signup if the provider rejects, but never swallow it silently:
+    // the most common cause is EMAIL_FROM using a domain not verified in Resend.
+    // eslint-disable-next-line no-console
+    console.error(`[verify] FAILED to send to ${user.email}:`, err instanceof Error ? err.message : err);
   }
 }
 
@@ -49,7 +58,17 @@ export async function verifyToken(token: string): Promise<{ email: string }> {
 /** Resend a verification email for an address (no-op if already verified). */
 export async function resendVerification(emailAddr: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { email: emailAddr } });
-  // Don't leak whether the address exists; silently succeed either way.
-  if (!user || user.emailVerified) return;
+  // The API response must not leak whether the address exists, but log the
+  // reason server-side — otherwise a no-op is indistinguishable from a failure.
+  if (!user) {
+    // eslint-disable-next-line no-console
+    console.log(`[verify] resend requested for ${emailAddr} — no such account, nothing sent`);
+    return;
+  }
+  if (user.emailVerified) {
+    // eslint-disable-next-line no-console
+    console.log(`[verify] resend requested for ${emailAddr} — already verified, nothing sent`);
+    return;
+  }
   await sendVerification(user);
 }

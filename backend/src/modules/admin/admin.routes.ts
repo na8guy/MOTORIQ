@@ -57,6 +57,7 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
         lastName: true,
         tier: true,
         role: true,
+        emailVerified: true,
         createdAt: true,
         kyc: { select: { status: true, riskLevel: true } },
         wallet: { select: { balanceMinor: true } },
