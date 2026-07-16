@@ -85,12 +85,40 @@ services:
         value: post
       - key: FUEL_FINDER_API_KEY
         value: ""
+      # Leave EMPTY to use the built-in list of working retailer feeds.
+      # (An empty value is handled correctly now — it previously produced an
+      # empty feed list, so the API silently served mock London-only samples.)
       - key: FUEL_RETAILER_FEEDS
         value: ""
       - key: FUEL_FEED_TTL_SECONDS
         value: "900"
       - key: DEFAULT_TANK_LITRES
         value: "45"
+
+      # ── DVLA / DVSA vehicle data (automatic MOT + road-tax reminders) ──
+      # DVLA_MOCK=true returns believable sample data so reminders work before
+      # you have credentials. Set it to false once real keys are in place.
+      #
+      #  MOT expiry  → DVSA MOT History API (OAuth + x-api-key)
+      #                register: https://documentation.history.mot.api.gov.uk
+      #  Tax due     → DVLA Vehicle Enquiry Service (x-api-key)
+      #                register: https://developer-portal.driver-vehicle-licensing.api.gov.uk
+      #                (VES registration was CLOSED as of 2026-07 — "system upgrades")
+      #
+      # Insurance renewal and service dates have NO public API (the Motor
+      # Insurance Database is insurer/police-only) — members enter those.
+      - key: DVLA_MOCK
+        value: "true"
+      - key: DVLA_VES_API_KEY
+        value: ""
+      - key: MOT_HISTORY_API_KEY
+        value: ""
+      - key: MOT_HISTORY_CLIENT_ID
+        value: ""
+      - key: MOT_HISTORY_CLIENT_SECRET
+        value: ""
+      - key: MOT_HISTORY_TOKEN_URL
+        value: ""
 
       # ── Wallester (virtual cards + wallet) — MOCK, dummy creds ──
       - key: WALLESTER_MOCK

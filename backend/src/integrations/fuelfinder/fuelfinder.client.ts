@@ -1,4 +1,4 @@
-import { request } from 'undici';
+import { Agent, interceptors, request } from 'undici';
 import { env } from '../../config/env.js';
 import { UpstreamError } from '../../lib/errors.js';
 import { SAMPLE_STATIONS } from './sample-data.js';
@@ -46,25 +46,55 @@ export interface RankedStation extends Station {
   navigationUrl: string; // opens turn-by-turn directions in any maps app
 }
 
+/** 'live' = real retailer/Fuel Finder data. 'mock' = bundled samples. */
+export type DataSource = 'live' | 'mock';
+
 export interface RankedResult {
   kind: FuelKind;
   tankLitres: number;
   averagePence: number | null;
   cheapestPence: number | null;
   results: RankedStation[];
+  /** So the app never presents sample prices as if they were real. */
+  source: DataSource;
+  /** Stations known within the search radius (before price filtering). */
+  stationsInRadius: number;
 }
 
-// Well-known UK open fuel-price retailer feeds (CMA / Fuel Finder scheme).
+/**
+ * Legacy per-retailer open-data feeds (the voluntary CMA scheme).
+ *
+ * IMPORTANT: that scheme's gov.uk guidance was WITHDRAWN on 1 May 2026 and
+ * replaced by Fuel Finder — the statutory scheme under the Motor Fuel Price
+ * (Open Data) Regulations 2025. These feeds are decaying leftovers: Asda now
+ * 404s, Tesco/BP 403, Sainsbury's refuses connections, and Morrisons publishes
+ * a single placeholder site in Gibraltar. Only the ones below still served real
+ * UK data when last verified (2026-07-16), ~2,400 sites between them.
+ *
+ * Treat `aggregate` as a stopgap. The real path is FUEL_FINDER_MODE=single with
+ * OAuth client credentials from https://www.developer.fuel-finder.service.gov.uk
+ * (statutory, all UK forecourts, updated within 30 minutes of any change).
+ */
 const DEFAULT_FEEDS = [
-  'https://storelocator.asda.com/fuel_prices/fuel_prices_data.json',
-  'https://www.bp.com/en_gb/united-kingdom/home/fuelprices/fuel_prices_data.json',
-  'https://api.sainsburys.co.uk/v1/exports/latest/fuel_prices_data.json',
-  'https://www.tesco.com/fuel_prices/fuel_prices_data.json',
-  'https://www.morrisons.com/fuel-prices/fuel.json',
-  'https://fuelprices.esso.co.uk/latestdata.json',
-  'https://applegreenstores.com/fuel-prices/data.json',
-  'https://fuel.motorfuelgroup.com/fuel_prices_data.json',
+  'https://fuel.motorfuelgroup.com/fuel_prices_data.json', // ~1223 sites
+  'https://www.shell.co.uk/fuel-prices-data.html', // ~546 sites (serves JSON despite .html)
+  'https://www.rontec-servicestations.co.uk/fuel-prices/data/fuel_prices_data.json', // ~265
+  'https://fuelprices.esso.co.uk/latestdata.json', // ~196
+  'https://applegreenstores.com/fuel-prices/data.json', // ~65
+  'https://fuelprices.asconagroup.co.uk/newfuel.json', // ~60
+  'https://moto-way.com/fuel-price/fuel_prices.json', // ~47
+  'https://jetlocal.co.uk/fuel_prices_data.json', // ~11
 ];
+
+// Several retailers' CDNs 403 a non-browser user-agent, so present as one.
+const FEED_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+// undici v7 does not follow redirects from `request()` — redirects moved to an
+// interceptor. Shell's feed 301s, so without this it silently yields nothing.
+const feedDispatcher = new Agent({ connect: { timeout: 15_000 } }).compose(
+  interceptors.redirect({ maxRedirections: 3 }),
+);
 
 interface RawFeed {
   last_updated?: string;
@@ -81,8 +111,26 @@ interface RawStation {
 
 class FuelFinderClient {
   private readonly mode = env.FUEL_FINDER_MODE;
-  private cache: { at: number; stations: Station[] } | null = null;
+  private cache: { at: number; stations: Station[]; source: DataSource } | null = null;
   private token: { value: string; expiresAt: number } | null = null;
+  /** Whether the stations last served were real or the bundled samples. */
+  private lastSource: DataSource = 'mock';
+
+  /** Diagnostics for /fuel/status — is this real data, and how much of it? */
+  async status(): Promise<{
+    mode: string;
+    source: DataSource;
+    stationCount: number;
+    cachedAt: string | null;
+  }> {
+    const stations = await this.load();
+    return {
+      mode: this.mode,
+      source: this.lastSource,
+      stationCount: stations.length,
+      cachedAt: this.cache ? new Date(this.cache.at).toISOString() : null,
+    };
+  }
 
   async nearby(params: {
     latitude: number;
@@ -139,7 +187,15 @@ class FuelFinderClient {
       .sort((a, b) => a.price - b.price);
 
     if (priced.length === 0) {
-      return { kind: params.kind, tankLitres, averagePence: null, cheapestPence: null, results: [] };
+      return {
+        kind: params.kind,
+        tankLitres,
+        averagePence: null,
+        cheapestPence: null,
+        results: [],
+        source: this.lastSource,
+        stationsInRadius: nearby.length,
+      };
     }
 
     const averagePence = priced.reduce((sum, x) => sum + x.price, 0) / priced.length;
@@ -161,23 +217,45 @@ class FuelFinderClient {
       averagePence: Math.round(averagePence * 10) / 10,
       cheapestPence,
       results,
+      source: this.lastSource,
+      stationsInRadius: nearby.length,
     };
   }
 
   // ── data loading ─────────────────────────────────────────────
 
   private async load(): Promise<Station[]> {
-    if (this.mode === 'mock') return SAMPLE_STATIONS;
+    if (this.mode === 'mock') {
+      this.lastSource = 'mock';
+      return SAMPLE_STATIONS;
+    }
 
     if (this.cache && Date.now() - this.cache.at < env.FUEL_FEED_TTL_SECONDS * 1000) {
+      this.lastSource = this.cache.source;
       return this.cache.stations;
     }
 
     const stations = this.mode === 'single' ? await this.loadSingle() : await this.loadAggregate();
-    // Fall back to sample data if a live pull returns nothing (network down).
-    const finalStations = stations.length > 0 ? stations : SAMPLE_STATIONS;
-    this.cache = { at: Date.now(), stations: finalStations };
-    return finalStations;
+
+    // Fall back to sample data only if a live pull returns nothing. This used to
+    // happen silently, which disguised a total feed outage as a working service
+    // (mock data is 8 fake London sites — so every other UK city looked "empty"
+    // while London looked fine). Never silent again: log it loudly and mark the
+    // source so callers can tell members the data isn't real.
+    if (stations.length === 0) {
+      console.error(
+        `[fuel] NO LIVE DATA from mode=${this.mode} — serving ${SAMPLE_STATIONS.length} MOCK sample stations. ` +
+          `Members outside London will see "no prices found".`,
+      );
+      this.lastSource = 'mock';
+      this.cache = { at: Date.now(), stations: SAMPLE_STATIONS, source: 'mock' };
+      return SAMPLE_STATIONS;
+    }
+
+    console.log(`[fuel] loaded ${stations.length} live stations (mode=${this.mode})`);
+    this.lastSource = 'live';
+    this.cache = { at: Date.now(), stations, source: 'live' };
+    return stations;
   }
 
   private async loadSingle(): Promise<Station[]> {
@@ -245,22 +323,50 @@ class FuelFinderClient {
   }
 
   private async loadAggregate(): Promise<Station[]> {
-    const feeds = (env.FUEL_RETAILER_FEEDS?.split(',').map((s) => s.trim()).filter(Boolean) ?? DEFAULT_FEEDS);
+    // NOTE: `??` only catches null/undefined. FUEL_RETAILER_FEEDS="" (which is
+    // exactly what render.yaml sets) is a *string*, so `?.` does not
+    // short-circuit — it splits to [""], filters to [], and the empty array
+    // sails past `??`. Result: zero feeds fetched, zero stations, silent mock
+    // fallback in production. Check for emptiness, not nullishness.
+    const configured =
+      env.FUEL_RETAILER_FEEDS?.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean) ?? [];
+    const feeds = configured.length > 0 ? configured : DEFAULT_FEEDS;
+
     const settled = await Promise.allSettled(feeds.map((url) => this.fetchFeed(url)));
     const stations: Station[] = [];
-    for (const r of settled) {
-      if (r.status === 'fulfilled') stations.push(...r.value);
-    }
+    settled.forEach((r, i) => {
+      const host = new URL(feeds[i]!).host;
+      if (r.status === 'fulfilled') {
+        if (r.value.length === 0) console.warn(`[fuel] feed ${host} returned 0 stations`);
+        stations.push(...r.value);
+      } else {
+        console.warn(`[fuel] feed ${host} failed: ${r.reason}`);
+      }
+    });
     return stations;
   }
 
   private async fetchFeed(url: string): Promise<Station[]> {
     try {
-      const res = await request(url, { method: 'GET', headers: { 'user-agent': 'MOTORIQ/1.0' } });
-      if (res.statusCode >= 400) return [];
-      const data = (await res.body.json()) as RawFeed;
+      const res = await request(url, {
+        method: 'GET',
+        dispatcher: feedDispatcher, // follows redirects (see feedDispatcher)
+        headers: { 'user-agent': FEED_UA, accept: 'application/json,text/plain,*/*' },
+      });
+      if (res.statusCode >= 400) {
+        console.warn(`[fuel] feed ${new URL(url).host} responded ${res.statusCode}`);
+        res.body.dump();
+        return [];
+      }
+      // Some retailers serve JSON with a text/html content-type (Shell), so
+      // parse the body as text and JSON.parse it rather than trusting the type.
+      const raw = await res.body.text();
+      const data = JSON.parse(raw) as RawFeed;
       return (data.stations ?? []).map(mapRawStation);
-    } catch {
+    } catch (err) {
+      console.warn(`[fuel] feed ${new URL(url).host} error: ${err instanceof Error ? err.message : err}`);
       return [];
     }
   }

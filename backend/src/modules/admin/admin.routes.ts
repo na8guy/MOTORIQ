@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { Forbidden, NotFound } from '../../lib/errors.js';
 import { notify } from '../notifications/notifications.service.js';
+import { runDailyJobs } from '../../jobs/scheduler.js';
+import { fuelFinder } from '../../integrations/fuelfinder/fuelfinder.client.js';
 
 /** Guard: the caller must be an ADMIN. */
 async function requireAdmin(req: FastifyRequest, _reply: FastifyReply): Promise<void> {
@@ -40,6 +42,16 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
       totalMemberFuelSavedMinor: savingsAgg._sum.savedMinor ?? 0,
     };
   });
+
+  /**
+   * Force the daily run now (DVLA refresh + due-reminder notifications).
+   * Also the endpoint to point Render Cron at, since the in-process timer only
+   * fires while the service is awake — see jobs/scheduler.ts.
+   */
+  app.post('/jobs/daily', async () => runDailyJobs());
+
+  /** Is fuel price data live or falling back to samples? */
+  app.get('/fuel/status', async () => fuelFinder.status());
 
   // ── Users ──
   app.get('/users', async (req) => {

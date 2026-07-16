@@ -23,6 +23,10 @@ const rankedQuery = cheapestQuery.extend({
 });
 
 export default async function fuelRoutes(app: FastifyInstance): Promise<void> {
+  // Is the price data real, and how much of it is there? Lets ops tell a feed
+  // outage apart from "no stations near this member" without reading logs.
+  app.get('/status', async () => fuelFinder.status());
+
   // Fuel/EV price lookups. Public — powers the free tier.
   app.get('/stations', async (req) => {
     const q = nearbyQuery.parse(req.query);

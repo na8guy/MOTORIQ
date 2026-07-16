@@ -1,9 +1,12 @@
 import { buildApp } from './app.js';
 import { env } from './config/env.js';
+import { startScheduler } from './jobs/scheduler.js';
 import { prisma } from './lib/prisma.js';
 
 async function main(): Promise<void> {
   const app = await buildApp();
+  // Daily MOT/tax refresh + due-reminder notifications.
+  startScheduler();
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info(`Received ${signal}, shutting down…`);

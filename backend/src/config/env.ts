@@ -62,6 +62,33 @@ const schema = z.object({
   // Default tank size used when computing "save £X on a full tank".
   DEFAULT_TANK_LITRES: z.coerce.number().default(45),
 
+  // ── DVLA / DVSA vehicle data (auto MOT + tax reminders) ──
+  // Two separate government APIs, because neither alone has both dates:
+  //
+  //  1. DVLA Vehicle Enquiry Service (VES) → taxStatus, taxDueDate, make,
+  //     colour, fuelType, yearOfManufacture, motStatus. Simple x-api-key.
+  //     Register: https://developer-portal.driver-vehicle-licensing.api.gov.uk
+  //     NOTE: new VES registrations were CLOSED as of 2026-07 ("system
+  //     upgrades") — leave unset and the client returns mock data.
+  //
+  //  2. DVSA MOT History API → motExpiryDate + mileage readings. OAuth 2.0
+  //     client-credentials (Azure AD) *plus* an x-api-key.
+  //     Register: https://documentation.history.mot.api.gov.uk
+  //
+  // With neither configured, DVLA_MOCK returns believable sample data so the
+  // reminder flow is exercisable end-to-end.
+  DVLA_MOCK: envBool(true),
+  DVLA_VES_API_KEY: z.string().optional(),
+  DVLA_VES_BASE_URL: z
+    .string()
+    .default('https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles'),
+  MOT_HISTORY_BASE_URL: z.string().default('https://history.mot.api.gov.uk/v1/trade/vehicles'),
+  MOT_HISTORY_API_KEY: z.string().optional(),
+  MOT_HISTORY_CLIENT_ID: z.string().optional(),
+  MOT_HISTORY_CLIENT_SECRET: z.string().optional(),
+  MOT_HISTORY_TOKEN_URL: z.string().optional(),
+  MOT_HISTORY_SCOPE: z.string().default('https://tapi.dvsa.gov.uk/.default'),
+
   // AI savings insights (Claude). Optional — falls back to a rule-based
   // narrative when no key is set.
   ANTHROPIC_API_KEY: z.string().optional(),

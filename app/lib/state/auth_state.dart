@@ -85,6 +85,21 @@ class AuthState extends ChangeNotifier {
     } catch (_) {/* keep last known user */}
   }
 
+  /// Save profile edits. Unlike refreshUser this rethrows: the member pressed
+  /// Save and must be told if it didn't work.
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? phone,
+  }) async {
+    _user = await _auth.updateMe({
+      if (firstName != null) 'firstName': firstName,
+      if (lastName != null) 'lastName': lastName,
+      if (phone != null) 'phone': phone,
+    });
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     await _auth.logout();
     _user = null;

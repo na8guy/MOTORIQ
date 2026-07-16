@@ -35,6 +35,14 @@ class AuthRepository {
     return AppUser.fromJson(data);
   }
 
+  /// Update the member's own details. PATCH /users/me returns a trimmed user
+  /// (no wallet/savings), so re-read the full profile rather than let the
+  /// dashboard's balance and savings blank out after a name change.
+  Future<AppUser> updateMe(Map<String, dynamic> body) async {
+    await _api.patch('/users/me', body: body);
+    return me();
+  }
+
   Future<void> logout() async {
     final rt = await _api.refreshToken;
     if (rt != null) {
@@ -69,6 +77,19 @@ class VehicleRepository {
   }
 
   Future<void> delete(String id) => _api.delete('/vehicles/$id');
+
+  /// Ask the DVLA/DVSA what they know about a registration, before adding it.
+  Future<VehicleLookup> lookup(String registration) async {
+    final data = await _api.get('/vehicles/lookup?registration=$registration')
+        as Map<String, dynamic>;
+    return VehicleLookup.fromJson(data);
+  }
+
+  /// Re-pull government data (MOT expiry, tax due) for an existing vehicle.
+  Future<Vehicle> refresh(String id) async {
+    final data = await _api.post('/vehicles/$id/refresh') as Map<String, dynamic>;
+    return Vehicle.fromJson(data['vehicle'] as Map<String, dynamic>);
+  }
 }
 
 class WalletRepository {

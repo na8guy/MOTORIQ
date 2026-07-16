@@ -7,6 +7,7 @@ class AppUser {
   final String email;
   final String? firstName;
   final String? lastName;
+  final String? phone;
   final String tier;
   final bool emailVerified;
   final int walletBalanceMinor;
@@ -17,6 +18,7 @@ class AppUser {
     required this.email,
     this.firstName,
     this.lastName,
+    this.phone,
     required this.tier,
     this.emailVerified = true,
     this.walletBalanceMinor = 0,
@@ -33,6 +35,7 @@ class AppUser {
         email: j['email'] as String,
         firstName: j['firstName'] as String?,
         lastName: j['lastName'] as String?,
+        phone: j['phone'] as String?,
         tier: (j['tier'] as String?) ?? 'FREE',
         emailVerified: (j['emailVerified'] as bool?) ?? true,
         walletBalanceMinor: (j['walletBalanceMinor'] as int?) ?? 0,
@@ -48,6 +51,19 @@ class Vehicle {
   final int? year;
   final String fuelType;
   final int? mileage;
+  final String? colour;
+
+  // ── From the DVLA / DVSA APIs (read-only; we don't let members edit these) ──
+  final String? taxStatus;
+  final DateTime? taxDueDate;
+  final String? motStatus;
+  final DateTime? motExpiryDate;
+  final DateTime? dvlaSyncedAt;
+  final String? dvlaSyncError;
+
+  // ── Member-entered: no public API publishes these ──
+  final DateTime? insuranceRenewalDate;
+  final DateTime? serviceDueDate;
 
   Vehicle({
     required this.id,
@@ -57,9 +73,21 @@ class Vehicle {
     this.year,
     required this.fuelType,
     this.mileage,
+    this.colour,
+    this.taxStatus,
+    this.taxDueDate,
+    this.motStatus,
+    this.motExpiryDate,
+    this.dvlaSyncedAt,
+    this.dvlaSyncError,
+    this.insuranceRenewalDate,
+    this.serviceDueDate,
   });
 
   String get label => [make, model].where((s) => s != null && s.isNotEmpty).join(' ');
+
+  /// True once we've successfully pulled government data for this vehicle.
+  bool get hasDvlaData => motExpiryDate != null || taxDueDate != null;
 
   factory Vehicle.fromJson(Map<String, dynamic> j) => Vehicle(
         id: j['id'] as String,
@@ -69,6 +97,74 @@ class Vehicle {
         year: j['year'] as int?,
         fuelType: (j['fuelType'] as String?) ?? 'PETROL',
         mileage: j['mileage'] as int?,
+        colour: j['colour'] as String?,
+        taxStatus: j['taxStatus'] as String?,
+        taxDueDate: _date(j['taxDueDate']),
+        motStatus: j['motStatus'] as String?,
+        motExpiryDate: _date(j['motExpiryDate']),
+        dvlaSyncedAt: _date(j['dvlaSyncedAt']),
+        dvlaSyncError: j['dvlaSyncError'] as String?,
+        insuranceRenewalDate: _date(j['insuranceRenewalDate']),
+        serviceDueDate: _date(j['serviceDueDate']),
+      );
+
+  static DateTime? _date(Object? v) =>
+      v == null ? null : DateTime.tryParse(v as String)?.toLocal();
+}
+
+/// What the DVLA/DVSA know about a registration, before it's added as a
+/// vehicle. Returned by GET /vehicles/lookup.
+class VehicleLookup {
+  final String registration;
+  final String? make;
+  final String? model;
+  final String? colour;
+  final String? fuelType;
+  final int? year;
+  final String? taxStatus;
+  final DateTime? taxDueDate;
+  final String? motStatus;
+  final DateTime? motExpiryDate;
+  final int? mileage;
+
+  /// 'live' if a government API answered, 'mock' if it's sample data.
+  final String source;
+  final String? error;
+
+  VehicleLookup({
+    required this.registration,
+    this.make,
+    this.model,
+    this.colour,
+    this.fuelType,
+    this.year,
+    this.taxStatus,
+    this.taxDueDate,
+    this.motStatus,
+    this.motExpiryDate,
+    this.mileage,
+    this.source = 'mock',
+    this.error,
+  });
+
+  bool get found => make != null || motExpiryDate != null || taxDueDate != null;
+
+  String get label => [make, model].where((s) => s != null && s.isNotEmpty).join(' ');
+
+  factory VehicleLookup.fromJson(Map<String, dynamic> j) => VehicleLookup(
+        registration: j['registration'] as String,
+        make: j['make'] as String?,
+        model: j['model'] as String?,
+        colour: j['colour'] as String?,
+        fuelType: j['fuelType'] as String?,
+        year: (j['year'] as num?)?.toInt(),
+        taxStatus: j['taxStatus'] as String?,
+        taxDueDate: Vehicle._date(j['taxDueDate']),
+        motStatus: j['motStatus'] as String?,
+        motExpiryDate: Vehicle._date(j['motExpiryDate']),
+        mileage: (j['mileage'] as num?)?.toInt(),
+        source: (j['source'] as String?) ?? 'mock',
+        error: j['error'] as String?,
       );
 }
 
@@ -237,12 +333,22 @@ class RankedResult {
   final double? cheapestPence;
   final List<RankedStation> results;
 
+  /// 'live' for real retailer data, 'mock' for the backend's bundled samples.
+  /// Shown to the member so sample prices are never passed off as real.
+  final String source;
+
+  /// Stations known within the radius before filtering by fuel kind — lets the
+  /// empty state distinguish "nothing here" from "nothing sells this fuel".
+  final int stationsInRadius;
+
   RankedResult({
     required this.kind,
     required this.tankLitres,
     this.averagePence,
     this.cheapestPence,
     required this.results,
+    this.source = 'live',
+    this.stationsInRadius = 0,
   });
 
   factory RankedResult.fromJson(Map<String, dynamic> j) => RankedResult(
@@ -253,6 +359,9 @@ class RankedResult {
         results: ((j['results'] as List?) ?? [])
             .map((e) => RankedStation.fromJson(e as Map<String, dynamic>))
             .toList(),
+        // Default to 'live' so an older backend doesn't wrongly warn about mock.
+        source: (j['source'] as String?) ?? 'live',
+        stationsInRadius: (j['stationsInRadius'] as num?)?.toInt() ?? 0,
       );
 }
 

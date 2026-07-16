@@ -139,8 +139,29 @@ model Vehicle {
   year         Int?
   fuelType     FuelType @default(PETROL)
   mileage      Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  colour       String?
+
+  // ── Auto-filled from government APIs (see integrations/dvla) ──
+  // taxStatus/taxDueDate come from the DVLA Vehicle Enquiry Service.
+  // motStatus/motExpiryDate come from the DVSA MOT History API — VES does NOT
+  // publish an MOT expiry date, only a status, so they are two separate calls.
+  taxStatus     String?
+  taxDueDate    DateTime?
+  motStatus     String?
+  motExpiryDate DateTime?
+  dvlaSyncedAt  DateTime?
+  /** Why the last sync failed (unregistered key, unknown VRN, …). */
+  dvlaSyncError String?
+
+  // ── Member-entered: no public API exists for these ──
+  // Insurance renewal dates live in the Motor Insurance Database, which is
+  // restricted to insurers/police — there is no public lookup. Service
+  // intervals are per-manufacturer schedules, also not published as an API.
+  insuranceRenewalDate DateTime?
+  serviceDueDate       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   reminders Reminder[]
 
@@ -170,8 +191,10 @@ model Reminder {
   dueDate   DateTime
   note      String?
   completed Boolean      @default(false)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  /** Last time we pinged the member — stops a re-run notifying twice a day. */
+  notifiedAt DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   @@index([userId])
   @@index([dueDate])

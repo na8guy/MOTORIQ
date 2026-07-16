@@ -8,6 +8,7 @@ import '../theme.dart';
 import 'home_screen.dart';
 import 'kyc_screen.dart';
 import 'insights_screen.dart';
+import 'profile_screen.dart';
 import 'subscriptions_screen.dart';
 import 'referrals_screen.dart';
 import 'reminders_screen.dart';
@@ -51,6 +52,8 @@ class _MoreTabState extends State<MoreTab> {
         const SizedBox(height: 12),
         _KycBanner(profile: _kycProfile, onTap: () => _open(const KycScreen())),
         const SizedBox(height: 16),
+        _tile(Icons.person_outline, 'Your details', 'Name, phone & email',
+            () => _open(const ProfileScreen())),
         _tile(Icons.insights, 'Fuel savings', 'Your daily/weekly/monthly savings + AI tips',
             () => _open(const InsightsScreen())),
         _tile(Icons.workspace_premium, 'Membership', 'Free · Plus · Drive · Drive+',
@@ -109,7 +112,7 @@ class _KycBanner extends StatelessWidget {
           color: kBrandGreen.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(children: const [
+        child: const Row(children: [
           Icon(Icons.verified, color: kBrandGreen),
           SizedBox(width: 10),
           Text('Identity verified — wallet & card active',
@@ -126,14 +129,14 @@ class _KycBanner extends StatelessWidget {
           color: const Color(0xFFFEF3C7),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Row(children: [
-          const Icon(Icons.gpp_maybe, color: Color(0xFFD97706)),
-          const SizedBox(width: 10),
-          const Expanded(
+        child: const Row(children: [
+          Icon(Icons.gpp_maybe, color: Color(0xFFD97706)),
+          SizedBox(width: 10),
+          Expanded(
             child: Text('Verify your identity to enable top-ups & your Mastercard',
                 style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
           ),
-          const Icon(Icons.chevron_right, color: Color(0xFFD97706)),
+          Icon(Icons.chevron_right, color: Color(0xFFD97706)),
         ]),
       ),
     );
