@@ -1,5 +1,9 @@
-# Uncomment this line to define a global platform for your project
-platform :ios, '27.0'
+# Minimum iOS this app supports.
+# NOTE: this is the *minimum* iOS version, not the SDK you build against.
+# Xcode 26 supports 15.0–27.0; keep this at 15.0 so the app installs on any
+# modern device (including iPhone 14 Pro Max on iOS 26). Setting this to 27.0
+# would mean "requires iOS 27" and the app would refuse to install.
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -37,11 +41,27 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  # Force every Pod to the same deployment target as the app, otherwise Xcode 26
+  # errors on pods that still declare an unsupported minimum (e.g. 9.0/13.0).
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+  end
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '27.0'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+
+      # flutter_secure_storage's umbrella header uses double-quoted includes,
+      # which Xcode treats as an error inside a framework header. Downgrade it.
+      config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+
+      # Xcode 15+ "module verifier" compiles each pod's module standalone, without
+      # the Flutter framework on the header search path — which makes
+      # flutter_secure_storage fail with "'Flutter/Flutter.h' file not found" and
+      # "could not build module". Flutter plugins don't need this verification.
+      config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
     end
   end
 end
