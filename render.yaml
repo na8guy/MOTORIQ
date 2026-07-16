@@ -131,8 +131,10 @@ services:
       # ── Email (Resend) + verification — empty key = emails logged (mock) ──
       - key: RESEND_API_KEY
         value: ""
+      # Must be on a domain verified in Resend. Swap to the MOTORIQ domain once
+      # you own and verify it.
       - key: EMAIL_FROM
-        value: MOTORIQ <onboarding@resend.dev>
+        value: MOTORIQ <noreply@wanadryve.xyz>
       # Leave APP_PUBLIC_URL empty: the code falls back to Render's
       # RENDER_EXTERNAL_URL (the full https URL) automatically for the verify link.
       - key: APP_PUBLIC_URL

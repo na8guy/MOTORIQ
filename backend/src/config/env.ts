@@ -80,7 +80,10 @@ const schema = z.object({
   // Email (Resend) + email verification.
   // Without RESEND_API_KEY, emails are logged instead of sent (mock).
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default('MOTORIQ <onboarding@resend.dev>'),
+  // Must be an address on a domain you've verified in Resend. Using the shared
+  // onboarding@resend.dev sandbox only allows sending to your own Resend
+  // account email — a verified domain can send to any recipient.
+  EMAIL_FROM: z.string().default('MOTORIQ <noreply@wanadryve.xyz>'),
   // Public base URL of THIS API (used to build the verification link).
   APP_PUBLIC_URL: z.string().default('http://localhost:4000'),
   // If true, unverified users cannot log in. Default false (won't lock anyone out).
