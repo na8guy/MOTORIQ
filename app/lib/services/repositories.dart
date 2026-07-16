@@ -44,6 +44,9 @@ class AuthRepository {
     }
     await _api.clearTokens();
   }
+
+  Future<void> resendVerification(String email) =>
+      _api.post('/auth/resend-verification', auth: false, body: {'email': email});
 }
 
 class VehicleRepository {

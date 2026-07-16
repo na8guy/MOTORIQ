@@ -32,6 +32,7 @@ export default async function usersRoutes(app: FastifyInstance): Promise<void> {
       lastName: user.lastName,
       phone: user.phone,
       tier: user.tier,
+      emailVerified: user.emailVerified,
       subscription: user.subscription,
       walletBalanceMinor: user.wallet?.balanceMinor ?? 0,
       totalSavedMinor: savings._sum.amountMinor ?? 0,

@@ -13,10 +13,20 @@ Send `Authorization: Bearer <accessToken>` on protected routes. Obtain tokens fr
 ### Auth — `/auth`
 | Method | Path | Auth | Body | Purpose |
 |--------|------|------|------|---------|
-| POST | `/auth/register` | — | `email, password, firstName?, lastName?, phone?` | Create account (+ wallet + free sub) |
+| POST | `/auth/register` | — | `email, password, firstName?, lastName?, phone?` | Create account (+ wallet + free sub); sends a verification email |
 | POST | `/auth/login` | — | `email, password` | Sign in |
 | POST | `/auth/refresh` | — | `refreshToken` | Rotate tokens |
 | POST | `/auth/logout` | — | `refreshToken` | Revoke a refresh token |
+| GET | `/auth/verify?token=` | — | — | Verify from the emailed link (returns an HTML page) |
+| POST | `/auth/verify-email` | — | `token` | Verify via API (returns JSON) |
+| POST | `/auth/resend-verification` | — | `email` | Resend the verification email |
+
+**Email verification (Resend).** Registration sends a verification email (via the
+[Resend](https://resend.com) API — logged to the console if `RESEND_API_KEY` is unset).
+Users get `emailVerified: false` until they click the link. By default this is **not**
+enforced at login; set `REQUIRE_EMAIL_VERIFICATION=true` to block sign-in until verified.
+The verify link's base URL comes from `APP_PUBLIC_URL`, or Render's `RENDER_EXTERNAL_URL`,
+or `http://localhost:4000`.
 
 ### Users — `/users`
 | Method | Path | Purpose |

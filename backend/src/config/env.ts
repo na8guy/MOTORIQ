@@ -64,6 +64,15 @@ const schema = z.object({
   // Admin seeding (used by `npm run seed`).
   ADMIN_EMAIL: z.string().default('admin@motoriq.co.uk'),
   ADMIN_PASSWORD: z.string().default('admin12345'),
+
+  // Email (Resend) + email verification.
+  // Without RESEND_API_KEY, emails are logged instead of sent (mock).
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default('MOTORIQ <onboarding@resend.dev>'),
+  // Public base URL of THIS API (used to build the verification link).
+  APP_PUBLIC_URL: z.string().default('http://localhost:4000'),
+  // If true, unverified users cannot log in. Default false (won't lock anyone out).
+  REQUIRE_EMAIL_VERIFICATION: z.coerce.boolean().default(false),
 });
 
 const parsed = schema.safeParse(process.env);

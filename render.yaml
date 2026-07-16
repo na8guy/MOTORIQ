@@ -127,3 +127,15 @@ services:
         value: dummy@motoriq.iam.gserviceaccount.com
       - key: FCM_PRIVATE_KEY
         value: ""
+
+      # ── Email (Resend) + verification — empty key = emails logged (mock) ──
+      - key: RESEND_API_KEY
+        value: ""
+      - key: EMAIL_FROM
+        value: MOTORIQ <onboarding@resend.dev>
+      # Leave APP_PUBLIC_URL empty: the code falls back to Render's
+      # RENDER_EXTERNAL_URL (the full https URL) automatically for the verify link.
+      - key: APP_PUBLIC_URL
+        value: ""
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "false"

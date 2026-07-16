@@ -8,6 +8,7 @@ class AppUser {
   final String? firstName;
   final String? lastName;
   final String tier;
+  final bool emailVerified;
   final int walletBalanceMinor;
   final int totalSavedMinor;
 
@@ -17,6 +18,7 @@ class AppUser {
     this.firstName,
     this.lastName,
     required this.tier,
+    this.emailVerified = true,
     this.walletBalanceMinor = 0,
     this.totalSavedMinor = 0,
   });
@@ -32,6 +34,7 @@ class AppUser {
         firstName: j['firstName'] as String?,
         lastName: j['lastName'] as String?,
         tier: (j['tier'] as String?) ?? 'FREE',
+        emailVerified: (j['emailVerified'] as bool?) ?? true,
         walletBalanceMinor: (j['walletBalanceMinor'] as int?) ?? 0,
         totalSavedMinor: (j['totalSavedMinor'] as int?) ?? 0,
       );

@@ -102,11 +102,13 @@ class AuthState extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ApiException catch (e) {
+      // Includes NetworkException (can't reach the server) with a specific message.
       _error = e.message;
       notifyListeners();
       return false;
     } catch (e) {
-      _error = 'Something went wrong. Please try again.';
+      // Surface the real cause instead of hiding it (helps diagnose device/env issues).
+      _error = 'Unexpected error: $e';
       notifyListeners();
       return false;
     }

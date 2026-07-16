@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import '../app_config.dart';
@@ -12,6 +14,16 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
+
+/// Thrown when the app cannot reach the API at all (DNS, connection refused,
+/// timeout, TLS). statusCode 0 distinguishes it from server-returned errors.
+class NetworkException extends ApiException {
+  NetworkException(String message) : super(0, message, code: 'NETWORK');
+}
+
+/// How long to wait per request. Render free services cold-start slowly, so
+/// give the first request generous headroom.
+const _requestTimeout = Duration(seconds: 45);
 
 /// Low-level HTTP client for the MOTORIQ API.
 ///
@@ -93,17 +105,33 @@ class ApiClient {
     final headers = await _headers(auth: auth);
     final encoded = body == null ? null : jsonEncode(body);
 
-    switch (method) {
-      case 'GET':
-        return _http.get(uri, headers: headers);
-      case 'POST':
-        return _http.post(uri, headers: headers, body: encoded);
-      case 'PATCH':
-        return _http.patch(uri, headers: headers, body: encoded);
-      case 'DELETE':
-        return _http.delete(uri, headers: headers, body: encoded);
-      default:
-        throw ArgumentError('Unsupported method $method');
+    try {
+      final Future<http.Response> req;
+      switch (method) {
+        case 'GET':
+          req = _http.get(uri, headers: headers);
+        case 'POST':
+          req = _http.post(uri, headers: headers, body: encoded);
+        case 'PATCH':
+          req = _http.patch(uri, headers: headers, body: encoded);
+        case 'DELETE':
+          req = _http.delete(uri, headers: headers, body: encoded);
+        default:
+          throw ArgumentError('Unsupported method $method');
+      }
+      return await req.timeout(_requestTimeout);
+    } on TimeoutException {
+      throw NetworkException(
+        "The server took too long to respond at ${uri.origin}. It may be waking up — try again in a moment.",
+      );
+    } on SocketException catch (e) {
+      throw NetworkException(
+        "Can't reach the server at ${uri.origin}. Check your connection and the API URL. (${e.osError?.message ?? e.message})",
+      );
+    } on http.ClientException catch (e) {
+      throw NetworkException("Can't reach the server at ${uri.origin}. (${e.message})");
+    } on HandshakeException {
+      throw NetworkException("Secure connection to ${uri.origin} failed (TLS/certificate).");
     }
   }
 

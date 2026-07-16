@@ -3,8 +3,9 @@ import crypto from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
-import { BadRequest, Conflict, Unauthorized } from '../../lib/errors.js';
+import { BadRequest, Conflict, Forbidden, Unauthorized } from '../../lib/errors.js';
 import { env } from '../../config/env.js';
+import { sendVerification, verifyToken, resendVerification } from './verification.service.js';
 
 const registerBody = z.object({
   email: z.string().email(),
@@ -64,6 +65,9 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
       },
     });
 
+    // Send a verification email (best-effort; mock-logs without a Resend key).
+    await sendVerification(user);
+
     const tokens = await issueTokens(user);
     return { user: publicUser(user), ...tokens };
   });
@@ -74,8 +78,38 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     if (!user || !(await verifyPassword(user.passwordHash, body.password))) {
       throw Unauthorized('Invalid email or password');
     }
+    // Optional hard gate (off by default so no one is locked out).
+    if (env.REQUIRE_EMAIL_VERIFICATION && !user.emailVerified) {
+      throw Forbidden('Please verify your email address before signing in');
+    }
     const tokens = await issueTokens(user);
     return { user: publicUser(user), ...tokens };
+  });
+
+  // Verify via the emailed link (opened in a browser) — returns a small page.
+  app.get('/verify', async (req, reply) => {
+    const { token } = z.object({ token: z.string().min(10) }).parse(req.query);
+    try {
+      await verifyToken(token);
+      reply.type('text/html').send(resultPage(true, 'Your email is verified. You can return to the MOTORIQ app.'));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Verification failed';
+      reply.code(400).type('text/html').send(resultPage(false, msg));
+    }
+  });
+
+  // Verify via API (e.g. if the app captures the token) — returns JSON.
+  app.post('/verify-email', async (req) => {
+    const { token } = z.object({ token: z.string().min(10) }).parse(req.body);
+    const { email } = await verifyToken(token);
+    return { verified: true, email };
+  });
+
+  // Resend the verification email.
+  app.post('/resend-verification', async (req) => {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+    await resendVerification(email);
+    return { ok: true };
   });
 
   app.post('/refresh', async (req) => {
@@ -113,6 +147,7 @@ function publicUser(u: {
   firstName: string | null;
   lastName: string | null;
   tier: string;
+  emailVerified: boolean;
 }) {
   return {
     id: u.id,
@@ -120,5 +155,19 @@ function publicUser(u: {
     firstName: u.firstName,
     lastName: u.lastName,
     tier: u.tier,
+    emailVerified: u.emailVerified,
   };
+}
+
+function resultPage(ok: boolean, message: string): string {
+  const color = ok ? '#16A34A' : '#DC2626';
+  const icon = ok ? '✓' : '✕';
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MOTORIQ</title></head>
+  <body style="font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F6F8FB;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center">
+    <div style="background:#fff;border:1px solid #E1E7EF;border-radius:16px;padding:32px;max-width:420px;text-align:center">
+      <div style="width:56px;height:56px;border-radius:50%;background:${color}1a;color:${color};font-size:28px;line-height:56px;margin:0 auto 16px">${icon}</div>
+      <h2 style="margin:0 0 8px;color:#0B2545">${ok ? 'Email verified' : 'Verification failed'}</h2>
+      <p style="color:#475569;margin:0">${message}</p>
+    </div>
+  </body></html>`;
 }

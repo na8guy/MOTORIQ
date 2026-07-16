@@ -22,6 +22,7 @@ async function main(): Promise<void> {
       firstName: 'Demo',
       lastName: 'Driver',
       tier: 'PLUS',
+      emailVerified: true,
       wallet: { create: { balanceMinor: 5000 } },
       subscription: { create: { plan: 'PLUS', priceMinor: 599, status: 'ACTIVE' } },
     },
@@ -86,13 +87,14 @@ async function main(): Promise<void> {
   const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin12345';
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { role: 'ADMIN' },
+    update: { role: 'ADMIN', emailVerified: true },
     create: {
       email: adminEmail,
       passwordHash: await argon2.hash(adminPassword),
       firstName: 'Ops',
       lastName: 'Admin',
       role: 'ADMIN',
+      emailVerified: true,
       wallet: { create: {} },
       subscription: { create: { plan: 'FREE' } },
     },

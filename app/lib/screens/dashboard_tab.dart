@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/api_client.dart';
+import '../services/repositories.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
 import 'home_screen.dart';
@@ -34,6 +36,10 @@ class DashboardTab extends StatelessWidget {
               const SignOutButton(),
             ],
           ),
+          if (user != null && !user.emailVerified) ...[
+            const SizedBox(height: 12),
+            _EmailVerifyBanner(email: user.email),
+          ],
           const SizedBox(height: 16),
           _SavingsCard(
             savedMinor: user?.totalSavedMinor ?? 0,
@@ -159,6 +165,62 @@ class _StatTile extends StatelessWidget {
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmailVerifyBanner extends StatefulWidget {
+  const _EmailVerifyBanner({required this.email});
+  final String email;
+
+  @override
+  State<_EmailVerifyBanner> createState() => _EmailVerifyBannerState();
+}
+
+class _EmailVerifyBannerState extends State<_EmailVerifyBanner> {
+  bool _sending = false;
+
+  Future<void> _resend() async {
+    setState(() => _sending = true);
+    try {
+      await AuthRepository(context.read<ApiClient>()).resendVerification(widget.email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification email sent to ${widget.email}')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Could not send — try again shortly')));
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.mark_email_unread_outlined, color: Color(0xFFD97706)),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text('Verify your email to secure your account.',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
+          ),
+          _sending
+              ? const SizedBox(
+                  height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              : TextButton(onPressed: _resend, child: const Text('Resend')),
+        ],
       ),
     );
   }

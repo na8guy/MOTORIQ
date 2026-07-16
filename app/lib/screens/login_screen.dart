@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../app_config.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
 
@@ -44,7 +45,53 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _busy = false);
     if (!ok && auth.error != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(auth.error!)));
+          .showSnackBar(SnackBar(content: Text(auth.error!), duration: const Duration(seconds: 5)));
+    }
+  }
+
+  Future<void> _editServerUrl() async {
+    final controller = TextEditingController(text: AppConfig.apiBaseUrl);
+    final url = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Server URL'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'The API this app connects to. On a real device this must be a '
+              'reachable URL (e.g. your Render URL), not localhost.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autocorrect: false,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                hintText: 'https://motoriq-api.onrender.com/api/v1',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (url != null) {
+      await AppConfig.saveOverride(url);
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Server set to ${AppConfig.apiBaseUrl}')),
+        );
+      }
     }
   }
 
@@ -123,6 +170,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(_isRegister
                           ? 'Have an account? Sign in'
                           : 'New to MOTORIQ? Create an account'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _busy ? null : _editServerUrl,
+                      icon: const Icon(Icons.dns_outlined, size: 16),
+                      label: Text(
+                        'Server: ${Uri.tryParse(AppConfig.apiBaseUrl)?.host ?? AppConfig.apiBaseUrl}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
                 ),

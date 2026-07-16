@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'app_config.dart';
 import 'services/api_client.dart';
 import 'state/auth_state.dart';
 import 'theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-void main() {
-  final api = ApiClient();
-  runApp(MotoriqApp(api: api));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.loadOverride(); // apply any saved API URL before first request
+  runApp(MotoriqApp(api: ApiClient()));
 }
 
 class MotoriqApp extends StatelessWidget {
