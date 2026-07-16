@@ -61,8 +61,23 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Registered BEFORE routes so every encapsulated context inherits it.
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ZodError) {
+      // Surface the actual reason. A flat "Invalid request" is useless to a
+      // member: our own messages already say "Use at least 10 characters" or
+      // "You must accept the Terms & Conditions", and the app shows this
+      // string directly — so hiding it left people stuck with no idea what
+      // was wrong. `details` still carries the full per-field breakdown.
+      const first = error.issues[0];
+      const field = first?.path.filter((p) => typeof p !== 'number').join('.');
+      const message = first
+        ? // Zod's own defaults ("Required", "Invalid input") read as nonsense
+          // without the field name; our custom messages are already complete.
+          /^(Required|Invalid input|Invalid)$/i.test(first.message) && field
+          ? `${field}: ${first.message.toLowerCase()}`
+          : first.message
+        : 'Invalid request';
+
       reply.code(400).send({
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details: error.flatten() },
+        error: { code: 'VALIDATION_ERROR', message, details: error.flatten() },
       });
       return;
     }
