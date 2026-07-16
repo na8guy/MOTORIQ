@@ -7,6 +7,7 @@ import 'state/auth_state.dart';
 import 'theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +45,7 @@ class _Root extends StatelessWidget {
     final status = context.watch<AuthState>().status;
     switch (status) {
       case AuthStatus.unknown:
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const SplashScreen();
       case AuthStatus.authenticated:
         return const HomeScreen();
       case AuthStatus.unauthenticated:
