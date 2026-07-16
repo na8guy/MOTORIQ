@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { fuelFinder, type FuelKind } from '../../integrations/fuelfinder/fuelfinder.client.js';
+import { queryBool } from '../../lib/zod.js';
 
 const kinds = ['E10', 'E5', 'B7', 'SDV', 'ELECTRIC'] as const;
 
@@ -8,7 +9,7 @@ const nearbyQuery = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   radiusKm: z.coerce.number().positive().max(100).optional(),
-  evOnly: z.coerce.boolean().optional(),
+  evOnly: queryBool,
   limit: z.coerce.number().int().positive().max(200).optional(),
 });
 

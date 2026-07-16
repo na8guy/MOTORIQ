@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { NotFound } from '../../lib/errors.js';
+import { queryBool } from '../../lib/zod.js';
 
 const registerBody = z.object({
   token: z.string().min(10),
@@ -32,7 +33,7 @@ export default async function notificationsRoutes(app: FastifyInstance): Promise
 
   // In-app notification inbox.
   app.get('/', async (req) => {
-    const { unread } = z.object({ unread: z.coerce.boolean().optional() }).parse(req.query);
+    const { unread } = z.object({ unread: queryBool }).parse(req.query);
     const items = await prisma.notification.findMany({
       where: { userId: req.authUser.sub, ...(unread ? { read: false } : {}) },
       orderBy: { createdAt: 'desc' },

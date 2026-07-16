@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { NotFound } from '../../lib/errors.js';
+import { queryBool } from '../../lib/zod.js';
 
 const reminderTypes = ['MOT', 'ROAD_TAX', 'SERVICE', 'INSURANCE', 'BREAKDOWN', 'OTHER'] as const;
 
@@ -24,7 +25,7 @@ export default async function remindersRoutes(app: FastifyInstance): Promise<voi
   app.addHook('onRequest', app.authenticate);
 
   app.get('/', async (req) => {
-    const { upcoming } = z.object({ upcoming: z.coerce.boolean().optional() }).parse(req.query);
+    const { upcoming } = z.object({ upcoming: queryBool }).parse(req.query);
     return prisma.reminder.findMany({
       where: {
         userId: req.authUser.sub,

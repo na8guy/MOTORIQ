@@ -1,6 +1,18 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
+/**
+ * Parse a boolean from an env var. IMPORTANT: do NOT use z.coerce.boolean() —
+ * it does Boolean(value), so the string "false" (non-empty) becomes `true`.
+ * This treats only "true"/"1"/"yes"/"on" (case-insensitive) as true.
+ */
+const envBool = (def: boolean) =>
+  z.preprocess((v) => {
+    if (v === undefined || v === null || v === '') return def;
+    if (typeof v === 'boolean') return v;
+    return ['true', '1', 'yes', 'on'].includes(String(v).trim().toLowerCase());
+  }, z.boolean());
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(4000),
@@ -15,7 +27,7 @@ const schema = z.object({
   JWT_REFRESH_TTL: z.string().default('30d'),
 
   // Wallester
-  WALLESTER_MOCK: z.coerce.boolean().default(true),
+  WALLESTER_MOCK: envBool(true),
   WALLESTER_BASE_URL: z.string().default('https://api.wallester.com'),
   WALLESTER_API_VERSION: z.string().default('6.0'),
   WALLESTER_AUDIENCE_ID: z.string().optional(),
@@ -72,7 +84,7 @@ const schema = z.object({
   // Public base URL of THIS API (used to build the verification link).
   APP_PUBLIC_URL: z.string().default('http://localhost:4000'),
   // If true, unverified users cannot log in. Default false (won't lock anyone out).
-  REQUIRE_EMAIL_VERIFICATION: z.coerce.boolean().default(false),
+  REQUIRE_EMAIL_VERIFICATION: envBool(false),
 });
 
 const parsed = schema.safeParse(process.env);
