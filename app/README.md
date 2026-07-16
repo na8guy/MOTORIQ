@@ -53,11 +53,27 @@ flutter pub get
 flutter run
 ```
 
-- **iOS simulator / macOS / web:** uses `http://localhost:4000/api/v1`.
-- **Android emulator:** automatically uses `http://10.0.2.2:4000/api/v1` (host localhost).
-- **Custom / deployed API:** `flutter run --dart-define=API_BASE_URL=https://…/api/v1`
+### Which API does it talk to?
 
-Make sure the backend is running first (`cd ../backend && npm run dev`).
+By default the app points at the **live production API** — so a plain
+`flutter run` / `flutter build` works on a real device with no configuration:
+
+```
+https://motoriq-api.onrender.com/api/v1
+```
+
+Resolution order (first match wins):
+1. **In-app override** — tap **“Server: …”** on the login screen and enter a URL.
+   It's persisted, so an already-installed build can be re-pointed **without rebuilding**.
+2. **Compile-time** — `flutter run --dart-define=API_BASE_URL=https://your-api/api/v1`
+3. **Local backend** — `flutter run --dart-define=USE_LOCAL_API=true`
+   (uses `http://localhost:4000/api/v1`, or `10.0.2.2` on the Android emulator;
+   start it with `cd ../backend && npm run dev`)
+4. Otherwise → the production URL above.
+
+> On a real device `localhost` means *the phone itself*, which is why the default
+> is the deployed URL. If sign-in ever says it can't reach the server, check the
+> **Server** setting on the login screen.
 
 **Demo login:** `demo@motoriq.co.uk` / `password123` (pre-filled on the login screen).
 

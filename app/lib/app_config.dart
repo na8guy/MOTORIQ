@@ -15,13 +15,12 @@ class AppConfig {
 
   static String? _override;
 
-  static String get apiBaseUrl {
-    if (_override != null && _override!.isNotEmpty) return _override!;
-    if (_envUrl.isNotEmpty) return _envUrl;
+  /// Production API. Used by default so a plain `flutter build`/`flutter run`
+  /// works on a real device with no configuration.
+  static const productionUrl = 'https://motoriq-api.onrender.com/api/v1';
 
-    // Defaults for local dev. NOTE: on a real device "localhost" is the phone
-    // itself — set a real URL (e.g. your Render URL) via the in-app Server
-    // setting or --dart-define=API_BASE_URL=...
+  /// Local dev API (host machine). Only used when USE_LOCAL_API=true.
+  static String get _localUrl {
     var host = 'localhost';
     try {
       if (Platform.isAndroid) host = '10.0.2.2'; // Android emulator → host machine
@@ -29,6 +28,16 @@ class AppConfig {
       // Platform unavailable (web) — fall back to localhost.
     }
     return 'http://$host:4000/api/v1';
+  }
+
+  static const _useLocal = bool.fromEnvironment('USE_LOCAL_API');
+
+  static String get apiBaseUrl {
+    if (_override != null && _override!.isNotEmpty) return _override!;
+    if (_envUrl.isNotEmpty) return _envUrl;
+    // Opt in to the local backend with --dart-define=USE_LOCAL_API=true
+    if (_useLocal) return _localUrl;
+    return productionUrl;
   }
 
   /// Whether a compile-time or runtime URL is configured (vs the local default).
