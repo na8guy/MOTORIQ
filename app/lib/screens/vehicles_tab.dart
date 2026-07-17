@@ -109,7 +109,7 @@ class _VehiclesTabState extends State<VehiclesTab> {
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text('MOT and tax dates come from the DVLA automatically',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    style: TextStyle(color: context.mq.muted, fontSize: 13)),
                 const SizedBox(height: 16),
                 if (vehicles.isEmpty)
                   const Padding(
@@ -179,8 +179,8 @@ class _VehicleCard extends StatelessWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: kBrandBlue.withValues(alpha: 0.1),
-                      child: Icon(_iconFor(v.fuelType), color: kBrandBlue),
+                      backgroundColor: context.mq.accent.withValues(alpha: 0.1),
+                      child: Icon(_iconFor(v.fuelType), color: context.mq.accent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -197,7 +197,7 @@ class _VehicleCard extends StatelessWidget {
                               _fuelLabel(v.fuelType),
                               if (v.mileage != null) '${v.mileage} mi',
                             ].join('  •  '),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: TextStyle(color: context.mq.muted, fontSize: 12),
                           ),
                         ],
                       ),
@@ -263,11 +263,11 @@ class _VehicleCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.info_outline, size: 13, color: Colors.orange.shade800),
+                      Icon(Icons.info_outline, size: 13, color: context.mq.warningFg),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(v.dvlaSyncError!,
-                            style: TextStyle(fontSize: 11, color: Colors.orange.shade800)),
+                            style: TextStyle(fontSize: 11, color: context.mq.warningFg)),
                       ),
                     ],
                   ),
@@ -300,8 +300,8 @@ class _DateChip extends StatelessWidget {
     final d = date;
     if (d == null) {
       return _box(
-        color: Colors.grey.shade200,
-        fg: Colors.grey.shade600,
+        color: context.mq.border,
+        fg: context.mq.muted,
         title: label,
         value: status ?? emptyHint,
       );
@@ -309,9 +309,9 @@ class _DateChip extends StatelessWidget {
 
     final days = d.difference(DateTime.now()).inDays;
     final (Color bg, Color fg) = switch (days) {
-      < 0 => (const Color(0xFFFEE2E2), const Color(0xFFB91C1C)), // overdue
-      < 30 => (const Color(0xFFFEF3C7), const Color(0xFF92400E)), // due soon
-      _ => (const Color(0xFFDCFCE7), const Color(0xFF166534)), // fine
+      < 0 => (context.mq.dangerBg, context.mq.dangerFg), // overdue
+      < 30 => (context.mq.warningBg, context.mq.warningFg), // due soon
+      _ => (context.mq.successBg, context.mq.successFg), // fine
     };
 
     final when = days < 0
@@ -601,13 +601,13 @@ class _VehicleFormState extends State<_VehicleForm> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Icon(Icons.edit_calendar, size: 15, color: Colors.grey.shade600),
+                    Icon(Icons.edit_calendar, size: 15, color: context.mq.muted),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         'Insurance and service dates aren\'t published by any '
                         'public API, so add them yourself and we\'ll remind you.',
-                        style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize: 11.5, color: context.mq.muted),
                       ),
                     ),
                   ],
@@ -659,7 +659,7 @@ class _LookupResult extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: mock ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7),
+        color: mock ? context.mq.warningBg : context.mq.successBg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -668,7 +668,7 @@ class _LookupResult extends StatelessWidget {
           Row(
             children: [
               Icon(mock ? Icons.science_outlined : Icons.verified,
-                  size: 15, color: mock ? const Color(0xFF92400E) : const Color(0xFF166534)),
+                  size: 15, color: mock ? context.mq.warningFg : context.mq.successFg),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -676,7 +676,7 @@ class _LookupResult extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: mock ? const Color(0xFF92400E) : const Color(0xFF166534),
+                    color: mock ? context.mq.warningFg : context.mq.successFg,
                   ),
                 ),
               ),
@@ -735,7 +735,7 @@ class _DateField extends StatelessWidget {
           date == null ? 'Not set' : DateFormat('d MMM yyyy').format(date!),
           style: TextStyle(
             fontSize: 15,
-            color: date == null ? Colors.grey.shade600 : null,
+            color: date == null ? context.mq.muted : null,
           ),
         ),
       ),

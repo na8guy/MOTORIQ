@@ -35,7 +35,7 @@ class DashboardTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Welcome back',
-                          style: TextStyle(color: Colors.grey.shade600)),
+                          style: TextStyle(color: context.mq.muted)),
                       Row(
                         children: [
                           Flexible(
@@ -45,7 +45,7 @@ class DashboardTab extends StatelessWidget {
                                     fontSize: 22, fontWeight: FontWeight.w700)),
                           ),
                           const SizedBox(width: 4),
-                          Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade500),
+                          Icon(Icons.chevron_right, size: 18, color: context.mq.faint),
                         ],
                       ),
                     ],
@@ -74,7 +74,7 @@ class DashboardTab extends StatelessWidget {
                   icon: Icons.account_balance_wallet,
                   label: 'Wallet',
                   value: formatMinor(user?.walletBalanceMinor ?? 0),
-                  color: kBrandBlue,
+                  color: context.mq.accent,
                   onTap: () => HomeNav.of(context).goToTab(HomeTab.wallet),
                 ),
               ),
@@ -84,7 +84,7 @@ class DashboardTab extends StatelessWidget {
                   icon: Icons.workspace_premium,
                   label: 'Membership',
                   value: _tierLabel(user?.tier ?? 'FREE'),
-                  color: kBrandGreen,
+                  color: context.mq.money,
                   onTap: () => _push(context, const SubscriptionsScreen()),
                 ),
               ),
@@ -170,8 +170,8 @@ class _SavingsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [kBrandBlue, kBrandDark],
+        gradient: LinearGradient(
+          colors: [context.mq.accent, kBrandDark],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -227,11 +227,11 @@ class _StatTile extends StatelessWidget {
                   Icon(icon, color: color),
                   const Spacer(),
                   if (onTap != null)
-                    Icon(Icons.chevron_right, size: 18, color: Colors.grey.shade400),
+                    Icon(Icons.chevron_right, size: 18, color: context.mq.faint),
                 ],
               ),
               const SizedBox(height: 12),
-              Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              Text(label, style: TextStyle(color: context.mq.muted, fontSize: 12)),
               const SizedBox(height: 2),
               Text(value,
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
@@ -268,8 +268,8 @@ class _UpgradeCard extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: kBrandGreen.withValues(alpha: 0.12),
-                child: const Icon(Icons.arrow_upward, color: kBrandGreen),
+                backgroundColor: context.mq.money.withValues(alpha: 0.12),
+                child: Icon(Icons.arrow_upward, color: context.mq.money),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -280,7 +280,7 @@ class _UpgradeCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
                     Text(p.pitch,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        style: TextStyle(fontSize: 12, color: context.mq.muted)),
                   ],
                 ),
               ),
@@ -328,16 +328,16 @@ class _EmailVerifyBannerState extends State<_EmailVerifyBanner> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
+        color: context.mq.warningBg,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          const Icon(Icons.mark_email_unread_outlined, color: Color(0xFFD97706)),
+          Icon(Icons.mark_email_unread_outlined, color: context.mq.warningFg),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text('Verify your email to secure your account.',
-                style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
+                style: TextStyle(fontWeight: FontWeight.w600, color: context.mq.warningFg)),
           ),
           _sending
               ? const SizedBox(
@@ -370,8 +370,8 @@ class _FeatureRow extends StatelessWidget {
         child: ListTile(
           onTap: onTap,
           leading: CircleAvatar(
-            backgroundColor: kBrandBlue.withValues(alpha: 0.1),
-            child: Icon(icon, color: kBrandBlue),
+            backgroundColor: context.mq.accent.withValues(alpha: 0.1),
+            child: Icon(icon, color: context.mq.accent),
           ),
           title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text(subtitle),

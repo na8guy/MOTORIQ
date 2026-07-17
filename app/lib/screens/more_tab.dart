@@ -87,8 +87,8 @@ class _MoreTabState extends State<MoreTab> {
       child: Card(
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: kBrandBlue.withValues(alpha: 0.1),
-            child: Icon(icon, color: kBrandBlue),
+            backgroundColor: context.mq.accent.withValues(alpha: 0.1),
+            child: Icon(icon, color: context.mq.accent),
           ),
           title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text(subtitle),
@@ -112,13 +112,13 @@ class _KycBanner extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: kBrandGreen.withValues(alpha: 0.1),
+          color: context.mq.money.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(children: [
-          Icon(Icons.verified, color: kBrandGreen),
-          SizedBox(width: 10),
-          Text('Identity verified — wallet & card active',
+        child: Row(children: [
+          Icon(Icons.verified, color: context.mq.money),
+          const SizedBox(width: 10),
+          const Text('Identity verified — wallet & card active',
               style: TextStyle(fontWeight: FontWeight.w600)),
         ]),
       );
@@ -129,17 +129,17 @@ class _KycBanner extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFEF3C7),
+          color: context.mq.warningBg,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Row(children: [
-          Icon(Icons.gpp_maybe, color: Color(0xFFD97706)),
-          SizedBox(width: 10),
+        child: Row(children: [
+          Icon(Icons.gpp_maybe, color: context.mq.warningFg),
+          const SizedBox(width: 10),
           Expanded(
             child: Text('Verify your identity to enable top-ups & your Mastercard',
-                style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
+                style: TextStyle(fontWeight: FontWeight.w600, color: context.mq.warningFg)),
           ),
-          Icon(Icons.chevron_right, color: Color(0xFFD97706)),
+          Icon(Icons.chevron_right, color: context.mq.warningFg),
         ]),
       ),
     );

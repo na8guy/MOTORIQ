@@ -123,7 +123,7 @@ class _BalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [kBrandDark, kBrandBlue]),
+        gradient: LinearGradient(colors: [kBrandDark, context.mq.accent]),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -184,7 +184,7 @@ class _CardsSection extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text('No card yet — issue a virtual Mastercard to spend your wallet.',
-                      style: TextStyle(color: Colors.grey.shade700)),
+                      style: TextStyle(color: context.mq.muted)),
                 ),
               ]),
             ),
@@ -194,13 +194,13 @@ class _CardsSection extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Card(
                   child: ListTile(
-                    leading: const Icon(Icons.credit_card, color: kBrandBlue),
+                    leading: Icon(Icons.credit_card, color: context.mq.accent),
                     title: Text('${c.brand} •••• ${c.last4 ?? '----'}'),
                     subtitle: Text('Expires ${c.expiryMonth ?? '--'}/${c.expiryYear ?? '--'}'),
                     trailing: Chip(
                       label: Text(c.status),
                       backgroundColor: c.status == 'ACTIVE'
-                          ? kBrandGreen.withValues(alpha: 0.12)
+                          ? context.mq.money.withValues(alpha: 0.12)
                           : Colors.orange.withValues(alpha: 0.12),
                     ),
                   ),
@@ -222,10 +222,10 @@ class _TxnTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: (credit ? kBrandGreen : Colors.redAccent)
+          backgroundColor: (credit ? context.mq.money : Colors.redAccent)
               .withValues(alpha: 0.12),
           child: Icon(credit ? Icons.arrow_downward : Icons.arrow_upward,
-              color: credit ? kBrandGreen : Colors.redAccent, size: 20),
+              color: credit ? context.mq.money : Colors.redAccent, size: 20),
         ),
         title: Text(txn.description ?? txn.type),
         subtitle: Text(txn.type),
@@ -233,7 +233,7 @@ class _TxnTile extends StatelessWidget {
           '${credit ? '+' : ''}${formatMinor(txn.amountMinor)}',
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            color: credit ? kBrandGreen : Colors.redAccent,
+            color: credit ? context.mq.money : Colors.redAccent,
           ),
         ),
       ),

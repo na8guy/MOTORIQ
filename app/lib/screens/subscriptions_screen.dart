@@ -106,9 +106,11 @@ class _PlanCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 14),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          // Follows the theme surface so the card is not stranded white on a
+          // dark scaffold.
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: current ? kBrandBlue : const Color(0xFFE1E7EF), width: current ? 1.5 : 1),
+          border: Border.all(color: current ? context.mq.accent : context.mq.border, width: current ? 1.5 : 1),
         ),
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -119,14 +121,14 @@ class _PlanCard extends StatelessWidget {
                 Expanded(
                   child: Text(plan.label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 ),
-                Text(price, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBrandBlue)),
+                Text(price, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: context.mq.accent)),
               ],
             ),
             const SizedBox(height: 12),
             ...(_features[plan.plan] ?? []).map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(children: [
-                    const Icon(Icons.check_circle, size: 18, color: kBrandGreen),
+                    Icon(Icons.check_circle, size: 18, color: context.mq.money),
                     const SizedBox(width: 8),
                     Expanded(child: Text(f)),
                   ]),
@@ -135,7 +137,7 @@ class _PlanCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: current
-                  ? OutlinedButton(onPressed: null, child: const Text('Current plan'))
+                  ? const OutlinedButton(onPressed: null, child: Text('Current plan'))
                   : FilledButton(
                       onPressed: busy ? null : onSubscribe,
                       child: Text(plan.plan == 'FREE' ? 'Switch to Free' : 'Choose ${plan.label}'),

@@ -79,17 +79,17 @@ class _NotifTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: n.read ? null : kBrandBlue.withValues(alpha: 0.04),
+      color: n.read ? null : context.mq.accent.withValues(alpha: 0.04),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: kBrandBlue.withValues(alpha: 0.12),
-          child: Icon(icon, color: kBrandBlue, size: 20),
+          backgroundColor: context.mq.accent.withValues(alpha: 0.12),
+          child: Icon(icon, color: context.mq.accent, size: 20),
         ),
         title: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.w500 : FontWeight.w700)),
         subtitle: Text(n.body),
         trailing: Text(
           DateFormat('d MMM').format(n.createdAt),
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+          style: TextStyle(color: context.mq.faint, fontSize: 12),
         ),
         isThreeLine: n.body.length > 40,
       ),

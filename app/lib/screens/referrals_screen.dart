@@ -48,12 +48,12 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [kBrandGreen, kBrandDark]),
+                  gradient: LinearGradient(colors: [context.mq.money, kBrandDark]),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Column(
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text('Give £10, get £10',
                         style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
                     SizedBox(height: 6),
@@ -93,7 +93,7 @@ class _CodeCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
-        leading: const Icon(Icons.confirmation_number, color: kBrandGreen),
+        leading: Icon(Icons.confirmation_number, color: context.mq.money),
         title: Text(referral.code, style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1)),
         subtitle: Text('Reward ${formatMinor(referral.rewardMinor)} · ${referral.status}'),
         trailing: IconButton(

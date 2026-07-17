@@ -85,11 +85,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: kBrandBlue,
+                          color: context.mq.accent,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: kBrandBlue.withValues(alpha: 0.45),
+                              color: context.mq.accent.withValues(alpha: 0.45),
                               blurRadius: 28,
                               spreadRadius: 2,
                             ),
@@ -138,7 +138,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       width: 120 * _barGrow.value,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: kBrandGreen,
+                        color: context.mq.money,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),

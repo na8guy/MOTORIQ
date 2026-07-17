@@ -131,8 +131,8 @@ class _FillUpConfirmCardState extends State<FillUpConfirmCard> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: kBrandBlue.withValues(alpha: 0.12),
-                  child: const Icon(Icons.local_gas_station, color: kBrandBlue, size: 20),
+                  backgroundColor: context.mq.accent.withValues(alpha: 0.12),
+                  child: Icon(Icons.local_gas_station, color: context.mq.accent, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -145,7 +145,7 @@ class _FillUpConfirmCardState extends State<FillUpConfirmCard> {
                       Text(
                         '$where${f.stationPostcode != null && f.stationPostcode!.isNotEmpty ? ' · ${f.stationPostcode}' : ''}'
                         ' · worth ${formatMinor(f.savedMinor)}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize: 12, color: context.mq.muted),
                       ),
                     ],
                   ),
@@ -155,7 +155,7 @@ class _FillUpConfirmCardState extends State<FillUpConfirmCard> {
             const SizedBox(height: 6),
             Text(
               "We only count savings you've actually made, so we need to know.",
-              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 11.5, color: context.mq.faint),
             ),
             const SizedBox(height: 12),
             Row(

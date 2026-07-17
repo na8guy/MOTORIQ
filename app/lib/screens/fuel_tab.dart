@@ -170,7 +170,7 @@ class _FuelTabState extends State<FuelTab> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Text('Ranked live prices + one-tap directions',
-              style: TextStyle(color: Colors.grey.shade600)),
+              style: TextStyle(color: context.mq.muted)),
           const SizedBox(height: 12),
           // Always say where we're searching. Previously a denied permission
           // silently searched central London, so members far from London saw
@@ -242,7 +242,7 @@ class _FuelTabState extends State<FuelTab> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(
                         'Local average ${data.averagePence!.toStringAsFixed(1)}$_unit  ·  full tank ${data.tankLitres}L',
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                        style: TextStyle(color: context.mq.muted, fontSize: 13),
                       ),
                     ),
                   for (final s in data.results)
@@ -285,9 +285,9 @@ class _LocationBanner extends StatelessWidget {
       return _shell(
         context,
         icon: Icons.my_location,
-        color: kBrandBlue,
+        color: context.mq.accent,
         child: Text('Finding your location…',
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13)),
+            style: TextStyle(color: context.mq.muted, fontSize: 13)),
       );
     }
 
@@ -296,10 +296,10 @@ class _LocationBanner extends StatelessWidget {
       return _shell(
         context,
         icon: Icons.my_location,
-        color: kBrandGreen,
+        color: context.mq.money,
         child: RichText(
           text: TextSpan(
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+            style: TextStyle(color: context.mq.muted, fontSize: 13),
             children: [
               const TextSpan(text: 'Searching near '),
               TextSpan(
@@ -322,23 +322,23 @@ class _LocationBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
+        color: context.mq.warningBg,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_off, size: 18, color: Color(0xFFD97706)),
+          Icon(Icons.location_off, size: 18, color: context.mq.warningFg),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(p.problem ?? 'Location unavailable',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF92400E))),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 13, color: context.mq.warningFg)),
                 const SizedBox(height: 2),
                 Text('Showing ${p.placeName ?? 'central London'} instead',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF92400E))),
+                    style: TextStyle(fontSize: 12, color: context.mq.warningFg)),
               ],
             ),
           ),
@@ -384,18 +384,18 @@ class _MockDataWarning extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEE2E2),
+        color: context.mq.dangerBg,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFB91C1C)),
-          SizedBox(width: 10),
+          Icon(Icons.warning_amber_rounded, size: 18, color: context.mq.dangerFg),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Sample prices — live fuel data is unavailable right now. '
               "Don't rely on these figures.",
-              style: TextStyle(fontSize: 12, color: Color(0xFF991B1B)),
+              style: TextStyle(fontSize: 12, color: context.mq.dangerFg),
             ),
           ),
         ],
@@ -426,7 +426,7 @@ class _EmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 8),
       child: Column(
         children: [
-          Icon(icon, size: 40, color: Colors.grey.shade400),
+          Icon(icon, size: 40, color: context.mq.faint),
           const SizedBox(height: 12),
           Text(title,
               textAlign: TextAlign.center,
@@ -434,7 +434,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 6),
           Text(message,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4)),
+              style: TextStyle(color: context.mq.muted, fontSize: 13, height: 1.4)),
           const SizedBox(height: 16),
           OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
         ],
@@ -466,10 +466,12 @@ class _StationCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          // Follows the theme surface so the card is not stranded white on a
+          // dark scaffold.
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: cheapest ? kBrandGreen : const Color(0xFFE1E7EF),
+            color: cheapest ? context.mq.money : context.mq.border,
             width: cheapest ? 1.5 : 1,
           ),
         ),
@@ -481,10 +483,10 @@ class _StationCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: (cheapest ? kBrandGreen : kBrandBlue).withValues(alpha: 0.12),
+                  backgroundColor: (cheapest ? context.mq.money : context.mq.accent).withValues(alpha: 0.12),
                   child: Text('#${station.rank}',
                       style: TextStyle(
-                          color: cheapest ? kBrandGreen : kBrandBlue,
+                          color: cheapest ? context.mq.money : context.mq.accent,
                           fontWeight: FontWeight.w800,
                           fontSize: 13)),
                 ),
@@ -509,7 +511,7 @@ class _StationCard extends StatelessWidget {
                             formatDistanceKm(station.distanceKm!, distanceUnit),
                           if (station.postcode.isNotEmpty) station.postcode,
                         ].join('  ·  '),
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        style: TextStyle(color: context.mq.muted, fontSize: 12),
                       ),
                     ],
                   ),
@@ -527,7 +529,7 @@ class _StationCard extends StatelessWidget {
                   Icon(
                     closed ? Icons.schedule : Icons.check_circle_outline,
                     size: 13,
-                    color: closed ? const Color(0xFFB91C1C) : kBrandGreen,
+                    color: closed ? context.mq.dangerFg : context.mq.money,
                   ),
                   const SizedBox(width: 5),
                   Expanded(
@@ -536,7 +538,7 @@ class _StationCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: closed ? const Color(0xFFB91C1C) : kBrandGreen,
+                        color: closed ? context.mq.dangerFg : context.mq.money,
                       ),
                     ),
                   ),
@@ -547,13 +549,13 @@ class _StationCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: (cheapest ? kBrandGreen : kBrandBlue).withValues(alpha: 0.08),
+                color: (cheapest ? context.mq.money : context.mq.accent).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
                   Icon(cheapest ? Icons.local_offer : Icons.savings,
-                      size: 16, color: cheapest ? kBrandGreen : kBrandBlue),
+                      size: 16, color: cheapest ? context.mq.money : context.mq.accent),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -563,7 +565,7 @@ class _StationCard extends StatelessWidget {
                               ? 'Save ${formatMinor(saving)} vs average  ·  +${formatMinor(station.extraVsCheapestMinor)} vs cheapest'
                               : '+${formatMinor(station.extraVsCheapestMinor)} vs the cheapest option',
                       style: TextStyle(
-                        color: cheapest ? kBrandGreen : kBrandBlue,
+                        color: cheapest ? context.mq.money : context.mq.accent,
                         fontWeight: FontWeight.w600,
                         fontSize: 12.5,
                       ),
@@ -577,7 +579,7 @@ class _StationCard extends StatelessWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: cheapest ? kBrandGreen : kBrandBlue,
+                  backgroundColor: cheapest ? context.mq.money : context.mq.accent,
                   minimumSize: const Size.fromHeight(44),
                 ),
                 onPressed: onNavigate,

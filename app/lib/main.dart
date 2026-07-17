@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 
 import 'app_config.dart';
 import 'services/api_client.dart';
 import 'state/auth_state.dart';
+import 'state/theme_state.dart';
 import 'theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -12,12 +14,19 @@ import 'screens/splash_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.loadOverride(); // apply any saved API URL before first request
-  runApp(MotoriqApp(api: ApiClient()));
+
+  // Read the saved theme BEFORE the first frame, otherwise a dark-mode member
+  // gets a white flash on every launch while it loads.
+  final themeState = ThemeState(const FlutterSecureStorage());
+  await themeState.load();
+
+  runApp(MotoriqApp(api: ApiClient(), themeState: themeState));
 }
 
 class MotoriqApp extends StatelessWidget {
-  const MotoriqApp({super.key, required this.api});
+  const MotoriqApp({super.key, required this.api, required this.themeState});
   final ApiClient api;
+  final ThemeState themeState;
 
   @override
   Widget build(BuildContext context) {
@@ -25,12 +34,17 @@ class MotoriqApp extends StatelessWidget {
       providers: [
         Provider<ApiClient>.value(value: api),
         ChangeNotifierProvider(create: (_) => AuthState(api)..bootstrap()),
+        ChangeNotifierProvider.value(value: themeState),
       ],
-      child: MaterialApp(
-        title: 'MOTORIQ',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(),
-        home: const _Root(),
+      child: Consumer<ThemeState>(
+        builder: (context, theme, _) => MaterialApp(
+          title: 'MOTORIQ',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(),
+          darkTheme: buildTheme(brightness: Brightness.dark),
+          themeMode: theme.mode,
+          home: const _Root(),
+        ),
       ),
     );
   }

@@ -95,7 +95,7 @@ class _EvScreenState extends State<EvScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text('Ranked by price per kWh where published',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                style: TextStyle(color: context.mq.muted, fontSize: 13)),
             const SizedBox(height: 12),
             _LocationLine(pos: _pos, locating: _locating),
             const SizedBox(height: 12),
@@ -165,7 +165,7 @@ class _EvScreenState extends State<EvScreen> {
                         child: Text(
                           'Local average ${data.averagePence!.toStringAsFixed(0)}p/kWh  ·  '
                           'based on a ${data.kwh} kWh charge',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          style: TextStyle(color: context.mq.muted, fontSize: 13),
                         ),
                       ),
                     for (final c in data.results)
@@ -190,7 +190,7 @@ class _EvScreenState extends State<EvScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 8),
         child: Column(
           children: [
-            Icon(icon, size: 40, color: Colors.grey.shade400),
+            Icon(icon, size: 40, color: context.mq.faint),
             const SizedBox(height: 12),
             Text(title,
                 textAlign: TextAlign.center,
@@ -198,7 +198,7 @@ class _EvScreenState extends State<EvScreen> {
             const SizedBox(height: 6),
             Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.4)),
+                style: TextStyle(color: context.mq.muted, fontSize: 13, height: 1.4)),
             const SizedBox(height: 16),
             OutlinedButton(
                 onPressed: () => _load(refresh: true), child: const Text('Try again')),
@@ -216,20 +216,20 @@ class _LocationLine extends StatelessWidget {
   Widget build(BuildContext context) {
     if (locating || pos == null) {
       return Text('Finding your location…',
-          style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600));
+          style: TextStyle(fontSize: 12.5, color: context.mq.muted));
     }
     final p = pos!;
     return Row(
       children: [
         Icon(p.isReal ? Icons.my_location : Icons.location_off,
-            size: 14, color: p.isReal ? kBrandGreen : const Color(0xFFD97706)),
+            size: 14, color: p.isReal ? context.mq.money : context.mq.warningFg),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             p.isReal
                 ? 'Searching near ${p.placeName ?? 'you'}'
                 : '${p.problem} — showing ${p.placeName ?? 'central London'}',
-            style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700),
+            style: TextStyle(fontSize: 12.5, color: context.mq.muted),
           ),
         ),
       ],
@@ -246,18 +246,18 @@ class _MockBanner extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7),
+        color: context.mq.warningBg,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.science_outlined, size: 18, color: Color(0xFF92400E)),
-          SizedBox(width: 10),
+          Icon(Icons.science_outlined, size: 18, color: context.mq.warningFg),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Sample chargers — live EV data needs an Open Charge Map key. '
               "Don't rely on these prices.",
-              style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+              style: TextStyle(fontSize: 12, color: context.mq.warningFg),
             ),
           ),
         ],
@@ -279,7 +279,7 @@ class _UnpricedNote extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, size: 13, color: Colors.grey.shade500),
+          Icon(Icons.info_outline, size: 13, color: context.mq.faint),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -287,7 +287,7 @@ class _UnpricedNote extends StatelessWidget {
               "${count == 1 ? "doesn't" : "don't"} publish a price. "
               'Unlike petrol, EV tariffs are not open data, so we can only rank '
               'what operators actually publish.',
-              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500, height: 1.35),
+              style: TextStyle(fontSize: 11.5, color: context.mq.faint, height: 1.35),
             ),
           ),
         ],
@@ -314,9 +314,9 @@ class _OcmAttribution extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = TextStyle(fontSize: 11, color: Colors.grey.shade500);
+    final style = TextStyle(fontSize: 11, color: context.mq.faint);
     final link = style.copyWith(
-      color: Colors.grey.shade600,
+      color: context.mq.muted,
       decoration: TextDecoration.underline,
     );
     return Padding(
@@ -362,16 +362,18 @@ class _ChargerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = charger;
     final cheapest = c.rank == 1 && c.hasPrice;
-    final accent = cheapest ? kBrandGreen : kBrandBlue;
+    final accent = cheapest ? context.mq.money : context.mq.accent;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          // Follows the theme surface so the card is not stranded white on a
+          // dark scaffold.
+          color: Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: cheapest ? kBrandGreen : const Color(0xFFE1E7EF),
+            color: cheapest ? context.mq.money : context.mq.border,
             width: cheapest ? 1.5 : 1,
           ),
         ),
@@ -407,23 +409,23 @@ class _ChargerCard extends StatelessWidget {
                           if (c.maxPowerKw != null) '${c.maxPowerKw!.round()} kW',
                           if (c.points > 0) '${c.points} bay${c.points == 1 ? '' : 's'}',
                         ].join('  ·  '),
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                        style: TextStyle(color: context.mq.muted, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 // Price, or an honest blank where none is published.
                 if (c.isFree)
-                  const Text('FREE',
+                  Text('FREE',
                       style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w800, color: kBrandGreen))
+                          fontSize: 16, fontWeight: FontWeight.w800, color: context.mq.money))
                 else if (c.hasPrice)
                   Text('${c.pricePencePerKwh!.toStringAsFixed(0)}p/kWh',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))
                 else
                   Text('—',
                       style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800, color: Colors.grey.shade400)),
+                          fontSize: 18, fontWeight: FontWeight.w800, color: context.mq.faint)),
               ],
             ),
             const SizedBox(height: 12),
@@ -438,14 +440,14 @@ class _ChargerCard extends StatelessWidget {
                   Icon(
                     c.hasPrice ? (cheapest ? Icons.local_offer : Icons.savings) : Icons.help_outline,
                     size: 16,
-                    color: c.hasPrice ? accent : Colors.grey.shade600,
+                    color: c.hasPrice ? accent : context.mq.muted,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _blurb(c),
                       style: TextStyle(
-                        color: c.hasPrice ? accent : Colors.grey.shade700,
+                        color: c.hasPrice ? accent : context.mq.muted,
                         fontWeight: FontWeight.w600,
                         fontSize: 12.5,
                       ),
@@ -459,7 +461,7 @@ class _ChargerCard extends StatelessWidget {
               Text(c.connectorTypes.join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  style: TextStyle(fontSize: 11, color: context.mq.faint)),
             ],
             const SizedBox(height: 12),
             SizedBox(

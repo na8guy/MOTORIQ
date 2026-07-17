@@ -81,7 +81,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [kBrandBlue, kBrandDark]),
+          gradient: LinearGradient(colors: [context.mq.accent, kBrandDark]),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -96,9 +96,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
       ),
       const SizedBox(height: 16),
       Row(children: [
-        Expanded(child: _stat('Saved', formatMinor(i.totalSavedMinor), kBrandGreen)),
+        Expanded(child: _stat('Saved', formatMinor(i.totalSavedMinor), context.mq.money)),
         const SizedBox(width: 12),
-        Expanded(child: _stat('Projected / yr', formatMinor(i.projectedAnnualSavingMinor), kBrandBlue)),
+        Expanded(child: _stat('Projected / yr', formatMinor(i.projectedAnnualSavingMinor), context.mq.accent)),
       ]),
       const SizedBox(height: 20),
       Row(children: [
@@ -108,17 +108,17 @@ class _InsightsScreenState extends State<InsightsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: kBrandBlue.withValues(alpha: 0.1),
+              color: context.mq.accent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('AI', style: TextStyle(color: kBrandBlue, fontWeight: FontWeight.w700, fontSize: 11)),
+            child: Text('AI', style: TextStyle(color: context.mq.accent, fontWeight: FontWeight.w700, fontSize: 11)),
           ),
       ]),
       const SizedBox(height: 8),
       ...i.tips.map((t) => Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
-              leading: const Icon(Icons.tips_and_updates, color: kBrandGreen),
+              leading: Icon(Icons.tips_and_updates, color: context.mq.money),
               title: Text(t),
             ),
           )),
@@ -131,7 +131,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              Text(label, style: TextStyle(color: context.mq.muted, fontSize: 12)),
               const SizedBox(height: 4),
               Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
             ],

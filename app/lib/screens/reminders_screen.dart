@@ -85,8 +85,8 @@ class _ReminderTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: (overdue ? Colors.redAccent : kBrandBlue).withValues(alpha: 0.12),
-          child: Icon(Icons.event, color: overdue ? Colors.redAccent : kBrandBlue),
+          backgroundColor: (overdue ? Colors.redAccent : context.mq.accent).withValues(alpha: 0.12),
+          child: Icon(Icons.event, color: overdue ? Colors.redAccent : context.mq.accent),
         ),
         title: Text(_types[reminder.type] ?? reminder.type,
             style: const TextStyle(fontWeight: FontWeight.w700)),

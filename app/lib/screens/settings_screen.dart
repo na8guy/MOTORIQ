@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../services/api_client.dart';
 import '../services/repositories.dart';
 import '../state/auth_state.dart';
+import '../state/theme_state.dart';
 import '../theme.dart';
 import '../units.dart';
 
@@ -78,6 +79,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         children: [
+          const _SectionLabel('Appearance'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Theme',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, color: context.mq.muted)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Match your phone, or pick one. Dark is easier on the eyes at '
+                    'night — which is when you are most likely to be looking for fuel.',
+                    style: TextStyle(fontSize: 12, color: context.mq.muted),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(
+                        value: ThemeMode.system,
+                        label: Text('Auto'),
+                        icon: Icon(Icons.brightness_auto_outlined, size: 16),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.light,
+                        label: Text('Light'),
+                        icon: Icon(Icons.light_mode_outlined, size: 16),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.dark,
+                        label: Text('Dark'),
+                        icon: Icon(Icons.dark_mode_outlined, size: 16),
+                      ),
+                    ],
+                    selected: {context.watch<ThemeState>().mode},
+                    onSelectionChanged: (s) =>
+                        context.read<ThemeState>().setMode(s.first),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _themeHint(context),
+                    style: TextStyle(fontSize: 11.5, color: context.mq.faint),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
           const _SectionLabel('Units'),
           Card(
             child: Padding(
@@ -87,12 +137,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     'Distances and drive times',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800),
+                    style: TextStyle(fontWeight: FontWeight.w600, color: context.mq.muted),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'UK road signs are in miles, so that\'s the default — switch if you prefer km.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: context.mq.muted),
                   ),
                   const SizedBox(height: 12),
                   SegmentedButton<DistanceUnit>(
@@ -116,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // Show the effect immediately, in their chosen unit.
                   Text(
                     'Example: ${formatDistanceKm(3.2, unit)} away · ${formatDuration(480)}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: context.mq.muted),
                   ),
                 ],
               ),
@@ -134,7 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: Text(
                 'Occasional emails about saving money on fuel. You can turn this '
                 'off at any time — it never affects your membership.',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 12, color: context.mq.muted),
               ),
               isThreeLine: true,
             ),
@@ -145,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text(
               'Service emails (verification, security, reminders) are always sent — '
               "they're part of your account, not marketing.",
-              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 11.5, color: context.mq.faint),
             ),
           ),
           const SizedBox(height: 20),
@@ -188,11 +238,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.shield_outlined, size: 18, color: kBrandBlue),
+                      Icon(Icons.shield_outlined, size: 18, color: context.mq.accent),
                       const SizedBox(width: 8),
                       Text('Your rights',
                           style: TextStyle(
-                              fontWeight: FontWeight.w700, color: Colors.grey.shade800)),
+                              fontWeight: FontWeight.w700, color: context.mq.muted)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -200,7 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'Under UK GDPR you can ask for a copy of your data, have it '
                     'corrected, or have your account and data deleted. Deleting your '
                     'account (in Your details) removes your data permanently.',
-                    style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600, height: 1.4),
+                    style: TextStyle(fontSize: 12.5, color: context.mq.muted, height: 1.4),
                   ),
                 ],
               ),
@@ -209,6 +259,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  /// On Auto, say what the phone is currently doing — otherwise "Auto" tells
+  /// the member nothing about what they're actually going to see.
+  static String _themeHint(BuildContext context) {
+    final mode = context.watch<ThemeState>().mode;
+    if (mode != ThemeMode.system) return 'Always ${mode.name}, whatever your phone is set to.';
+    final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    return 'Following your phone — currently ${dark ? 'dark' : 'light'}.';
   }
 
   static String _fmtDate(DateTime d) =>
@@ -229,7 +288,7 @@ class _SectionLabel extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
-          color: Colors.grey.shade500,
+          color: context.mq.faint,
         ),
       ),
     );

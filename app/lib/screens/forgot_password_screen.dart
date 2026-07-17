@@ -81,7 +81,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.lock_reset, size: 48, color: kBrandBlue),
+          Icon(Icons.lock_reset, size: 48, color: context.mq.accent),
           const SizedBox(height: 16),
           const Text(
             'Forgot your password?',
@@ -92,7 +92,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Text(
             "Enter your email and we'll send you a link to choose a new password.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600, height: 1.4),
+            style: TextStyle(color: context.mq.muted, height: 1.4),
           ),
           const SizedBox(height: 24),
           TextFormField(
@@ -124,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.mark_email_read_outlined, size: 48, color: kBrandGreen),
+        Icon(Icons.mark_email_read_outlined, size: 48, color: context.mq.money),
         const SizedBox(height: 16),
         const Text(
           'Check your email',
@@ -138,13 +138,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           "If an account exists for ${_email.text.trim()}, we've sent a link to "
           'choose a new password. It expires in 1 hour.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+          style: TextStyle(color: context.mq.muted, height: 1.4),
         ),
         const SizedBox(height: 8),
         Text(
           "Can't see it? Check your spam folder.",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 12.5),
+          style: TextStyle(color: context.mq.faint, fontSize: 12.5),
         ),
         const SizedBox(height: 24),
         FilledButton(

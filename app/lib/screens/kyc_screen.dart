@@ -92,7 +92,7 @@ class _KycScreenState extends State<KycScreen> {
             verified
                 ? 'You are fully verified. Your wallet and Mastercard are active.'
                 : 'MOTORIQ moves money, so we must verify your identity (KYC) before you can top up or use your card. Verification is handled by our regulated banking partner.',
-            style: TextStyle(color: Colors.grey.shade700),
+            style: TextStyle(color: context.mq.muted),
           ),
           const SizedBox(height: 20),
           if (!verified)
@@ -186,9 +186,9 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (Color c, IconData i) = switch (status) {
-      'VERIFIED' => (kBrandGreen, Icons.verified),
+      'VERIFIED' => (context.mq.money, Icons.verified),
       'REJECTED' => (Colors.redAccent, Icons.cancel),
-      'PENDING' => (const Color(0xFFD97706), Icons.hourglass_top),
+      'PENDING' => (context.mq.warningFg, Icons.hourglass_top),
       _ => (Colors.grey, Icons.info_outline),
     };
     return Container(

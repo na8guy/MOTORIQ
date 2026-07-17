@@ -94,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            style: FilledButton.styleFrom(backgroundColor: context.mq.dangerFg),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
@@ -127,11 +127,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Center(
               child: CircleAvatar(
                 radius: 34,
-                backgroundColor: kBrandBlue.withValues(alpha: 0.12),
+                backgroundColor: context.mq.accent.withValues(alpha: 0.12),
                 child: Text(
                   _initials(user?.firstName, user?.lastName, user?.email),
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.w800, color: kBrandBlue),
+                  style: TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.w800, color: context.mq.accent),
                 ),
               ),
             ),
@@ -144,11 +144,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               trailing: user == null
                   ? null
                   : user.emailVerified
-                      ? const _Chip(
-                          label: 'Verified', color: kBrandGreen, icon: Icons.verified)
-                      : const _Chip(
+                      ? _Chip(
+                          label: 'Verified', color: context.mq.money, icon: Icons.verified)
+                      : _Chip(
                           label: 'Unverified',
-                          color: Color(0xFFD97706),
+                          color: context.mq.warningFg,
                           icon: Icons.error_outline),
             ),
             if (user != null && !user.emailVerified) ...[
@@ -158,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: Text(
                       'Verify your email to secure your account.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 12, color: context.mq.muted),
                     ),
                   ),
                   _resending
@@ -227,7 +227,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Card(
               clipBehavior: Clip.antiAlias,
               child: ListTile(
-                leading: const Icon(Icons.workspace_premium, color: kBrandGreen),
+                leading: Icon(Icons.workspace_premium, color: context.mq.money),
                 title: const Text('Membership',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(_tierLabel(user?.tier ?? 'FREE')),
@@ -241,8 +241,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             TextButton.icon(
               onPressed: _confirmDelete,
-              icon: Icon(Icons.delete_outline, color: Colors.red.shade700),
-              label: Text('Delete account', style: TextStyle(color: Colors.red.shade700)),
+              icon: Icon(Icons.delete_outline, color: context.mq.dangerFg),
+              label: Text('Delete account', style: TextStyle(color: context.mq.dangerFg)),
             ),
           ],
         ),
@@ -280,7 +280,7 @@ class _ReadOnlyField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         filled: true,
-        fillColor: const Color(0xFFF3F5F9),
+        fillColor: context.mq.neutralBg,
       ),
       child: Row(
         children: [

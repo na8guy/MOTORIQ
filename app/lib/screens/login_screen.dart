@@ -191,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       'The Smart Membership for Cheaper Driving',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: context.mq.muted),
                     ),
                     const SizedBox(height: 32),
                     if (_isRegister) ...[
@@ -302,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onChanged: (v) => setState(() => _marketingOptIn = v ?? false),
                         child: Text(
                           'Send me fuel savings tips and offers (optional)',
-                          style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                          style: TextStyle(fontSize: 13, color: context.mq.muted),
                         ),
                       ),
                     ],
@@ -372,13 +372,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return Text.rich(
       TextSpan(
-        style: TextStyle(fontSize: 13, color: Colors.grey.shade800, height: 1.35),
+        style: TextStyle(fontSize: 13, color: context.mq.muted, height: 1.35),
         children: [
           TextSpan(text: lead),
           TextSpan(
             text: linkLabel,
-            style: const TextStyle(
-              color: kBrandBlue,
+            style: TextStyle(
+              color: context.mq.accent,
               fontWeight: FontWeight.w600,
               decoration: TextDecoration.underline,
             ),
@@ -440,23 +440,26 @@ class _StrengthMeter extends StatelessWidget {
   const _StrengthMeter({required this.password});
   final String password;
 
-  static const _colors = [
-    Color(0xFFDC2626), // weak
-    Color(0xFFD97706), // fair
-    Color(0xFF65A30D), // good
-    kBrandGreen, // strong
-  ];
+  /// Weak → strong. Can't be a static const: the ends come from the theme so
+  /// they stay legible on both grounds, and the middle two are a ramp between
+  /// danger and money rather than arbitrary hues.
+  static List<Color> _ramp(BuildContext context) => [
+        context.mq.dangerFg, // weak
+        context.mq.warningFg, // fair
+        Color.lerp(context.mq.warningFg, context.mq.money, 0.55)!, // good
+        context.mq.money, // strong
+      ];
 
   @override
   Widget build(BuildContext context) {
     if (password.isEmpty) {
       return Text(
         'At least $kPasswordMin characters. A few random words makes a strong, memorable password.',
-        style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+        style: TextStyle(fontSize: 11.5, color: context.mq.muted),
       );
     }
     final score = passwordScore(password);
-    final color = _colors[score];
+    final color = _ramp(context)[score];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -468,7 +471,7 @@ class _StrengthMeter extends StatelessWidget {
                   duration: const Duration(milliseconds: 220),
                   height: 4,
                   decoration: BoxDecoration(
-                    color: i <= score ? color : const Color(0xFFE1E7EF),
+                    color: i <= score ? color : context.mq.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -498,7 +501,7 @@ class _Logo extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: kBrandBlue,
+            color: context.mq.accent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(Icons.directions_car_filled, color: Colors.white),
