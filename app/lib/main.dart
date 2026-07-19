@@ -20,11 +20,11 @@ Future<void> main() async {
   final themeState = ThemeState(const FlutterSecureStorage());
   await themeState.load();
 
-  runApp(MotoriqApp(api: ApiClient(), themeState: themeState));
+  runApp(SaveOnDriveApp(api: ApiClient(), themeState: themeState));
 }
 
-class MotoriqApp extends StatelessWidget {
-  const MotoriqApp({super.key, required this.api, required this.themeState});
+class SaveOnDriveApp extends StatelessWidget {
+  const SaveOnDriveApp({super.key, required this.api, required this.themeState});
   final ApiClient api;
   final ThemeState themeState;
 
@@ -38,7 +38,7 @@ class MotoriqApp extends StatelessWidget {
       ],
       child: Consumer<ThemeState>(
         builder: (context, theme, _) => MaterialApp(
-          title: 'MOTORIQ',
+          title: 'SaveOnDrive',
           debugShowCheckedModeBanner: false,
           theme: buildTheme(),
           darkTheme: buildTheme(brightness: Brightness.dark),

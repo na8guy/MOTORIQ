@@ -100,7 +100,7 @@ class DashboardTab extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
-          const Text('Your MOTORIQ',
+          const Text('Your SaveOnDrive',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           _FeatureRow(
@@ -117,7 +117,7 @@ class DashboardTab extends StatelessWidget {
           ),
           _FeatureRow(
             icon: Icons.credit_card,
-            title: 'MOTORIQ Mastercard',
+            title: 'SaveOnDrive Mastercard',
             subtitle: 'Prepaid driving wallet for fuel & charging',
             onTap: () => HomeNav.of(context).goToTab(HomeTab.wallet),
           ),
@@ -180,7 +180,7 @@ class _SavingsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Total saved with MOTORIQ',
+          const Text('Total saved with SaveOnDrive',
               style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 6),
           Text(formatMinor(savedMinor),

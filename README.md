@@ -1,4 +1,4 @@
-# MOTORIQ™
+# SaveOnDrive™
 
 **The Smart Membership for Cheaper Driving** — a UK motoring membership platform that
 reduces the cost of vehicle ownership through fuel savings, EV charging optimisation, a
@@ -47,7 +47,7 @@ Flutter app  ──HTTPS/REST──▶  Fastify API  ──▶  PostgreSQL (Pris
 | Fuel spend / savings tracking | `savings` | Home |
 | Vehicle reminders (MOT, tax, service…) | `reminders`, `vehicles` | Vehicles |
 | Prepaid driving wallet | `wallet` | Wallet |
-| MOTORIQ Mastercard (virtual) | `cards` | Wallet |
+| SaveOnDrive Mastercard (virtual) | `cards` | Wallet |
 | Membership tiers (Free/Plus/Drive/Drive+) | `subscriptions` | Home |
 | Referral programme (Give £10 / Get £10) | `referrals` | — |
 | Cashback & rewards | `wallet` (REWARD txns) + `savings` | Home |
@@ -79,7 +79,7 @@ npm run dev                   # API on http://localhost:4000
 
 Need a database quickly? `docker compose up -d db` (see [`docker-compose.yml`](docker-compose.yml)).
 
-**Demo login:** `demo@motoriq.co.uk` / `password123`
+**Demo login:** `demo@saveondrive.co.uk` / `password123`
 
 Smoke test:
 ```bash
@@ -97,7 +97,7 @@ flutter run          # iOS sim / desktop use localhost; Android emulator auto-us
 
 Point the app at a deployed API:
 ```bash
-flutter run --dart-define=API_BASE_URL=https://api.motoriq.co.uk/api/v1
+flutter run --dart-define=API_BASE_URL=https://api.saveondrive.co.uk/api/v1
 ```
 
 The app opens on the login screen pre-filled with the demo credentials.

@@ -1,4 +1,4 @@
-# MOTORIQ — complete Render Blueprint.
+# SaveOnDrive — complete Render Blueprint.
 #
 # Deploy: Render Dashboard → New → Blueprint → pick this repo.
 # This provisions a PostgreSQL database AND the API web service, wires
@@ -9,22 +9,22 @@
 #
 # After deploy:
 #   • API:   https://<service>.onrender.com/health
-#   • Admin: https://<service>.onrender.com/admin   (admin@motoriq.co.uk / see ADMIN_PASSWORD)
-#   • Demo:  demo@motoriq.co.uk / password123
+#   • Admin: https://<service>.onrender.com/admin   (admin@saveondrive.co.uk / see ADMIN_PASSWORD)
+#   • Demo:  demo@saveondrive.co.uk / password123
 #
 # Free tier notes: free web services sleep after ~15 min idle (first request
 # wakes them); free PostgreSQL is deleted ~30 days after creation — upgrade to
 # a paid DB plan for anything real.
 
 databases:
-  - name: motoriq-db
-    databaseName: motoriq
-    user: motoriq
+  - name: saveondrive-db
+    databaseName: saveondrive
+    user: saveondrive
     plan: free
 
 services:
   - type: web
-    name: motoriq-api
+    name: saveondrive-api
     runtime: node
     plan: free
     rootDir: backend
@@ -52,7 +52,7 @@ services:
         value: "*"
       - key: DATABASE_URL
         fromDatabase:
-          name: motoriq-db
+          name: saveondrive-db
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
@@ -63,7 +63,7 @@ services:
 
       # ── Admin/ops account (dummy — change ADMIN_PASSWORD) ──
       - key: ADMIN_EMAIL
-        value: admin@motoriq.co.uk
+        value: admin@saveondrive.co.uk
       - key: ADMIN_PASSWORD
         value: ChangeMe_Admin_2026!
 
@@ -147,9 +147,9 @@ services:
       - key: PRIVACY_VERSION
         value: "2026-07-16"
       - key: TERMS_URL
-        value: https://motoriq.co.uk/terms
+        value: https://saveondrive.co.uk/terms
       - key: PRIVACY_URL
-        value: https://motoriq.co.uk/privacy
+        value: https://saveondrive.co.uk/privacy
 
       # ── Wallester (virtual cards + wallet) — MOCK, dummy creds ──
       - key: WALLESTER_MOCK
@@ -183,17 +183,17 @@ services:
       - key: FCM_PROJECT_ID
         value: dummy-fcm-project
       - key: FCM_CLIENT_EMAIL
-        value: dummy@motoriq.iam.gserviceaccount.com
+        value: dummy@saveondrive.iam.gserviceaccount.com
       - key: FCM_PRIVATE_KEY
         value: ""
 
       # ── Email (Resend) + verification — empty key = emails logged (mock) ──
       - key: RESEND_API_KEY
         value: ""
-      # Must be on a domain verified in Resend. Swap to the MOTORIQ domain once
+      # Must be on a domain verified in Resend. Swap to the SaveOnDrive domain once
       # you own and verify it.
       - key: EMAIL_FROM
-        value: MOTORIQ <noreply@wanadryve.xyz>
+        value: SaveOnDrive <noreply@wanadryve.xyz>
       # Leave APP_PUBLIC_URL empty: the code falls back to Render's
       # RENDER_EXTERNAL_URL (the full https URL) automatically for the verify link.
       - key: APP_PUBLIC_URL

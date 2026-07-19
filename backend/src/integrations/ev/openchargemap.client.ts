@@ -9,10 +9,10 @@ import { env } from '../../config/env.js';
  * its data is CC BY-SA 4.0:
  *   • Attribution to OCM and the licence must be VISIBLE TO THE END USER. That
  *     is rendered by _OcmAttribution in the app's ev_screen.dart; do not remove
- *     it, or MOTORIQ is in breach of the licence it depends on.
+ *     it, or SaveOnDrive is in breach of the licence it depends on.
  *   • The API terms say not to use it for "unauthorised commercial purposes"
  *     and to review the data licence before putting the data in a commercial
- *     product. MOTORIQ is a paid membership, so this needs a decision — check
+ *     product. SaveOnDrive is a paid membership, so this needs a decision — check
  *     the licence and talk to OCM rather than assuming a free key is a
  *     commercial licence.
  *   • Share-alike may bite if we ever redistribute a derived dataset (as
@@ -213,7 +213,7 @@ class OpenChargeMapClient {
         method: 'GET',
         headers: {
           'x-api-key': env.OCM_API_KEY!,
-          'user-agent': 'MOTORIQ/1.0 (+https://motoriq.co.uk)',
+          'user-agent': 'SaveOnDrive/1.0 (+https://saveondrive.co.uk)',
           accept: 'application/json',
         },
         headersTimeout: 12_000,

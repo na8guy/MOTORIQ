@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
-/// Animated MOTORIQ splash, shown while the app restores the session
+/// Animated SaveOnDrive splash, shown while the app restores the session
 /// (AuthState.bootstrap). The background matches the native LaunchScreen's
 /// navy so the hand-off from the iOS launch image is seamless — no flash.
 class SplashScreen extends StatefulWidget {
@@ -106,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     child: SlideTransition(
                       position: _wordSlide,
                       child: const Text(
-                        'MOTORIQ',
+                        'SaveOnDrive',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 34,

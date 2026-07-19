@@ -281,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: _linkText(
                           'I accept the ',
                           linkLabel: 'Terms & Conditions',
-                          url: _legal?.termsUrl ?? 'https://motoriq.co.uk/terms',
+                          url: _legal?.termsUrl ?? 'https://saveondrive.co.uk/terms',
                         ),
                       ),
                       _ConsentCheckbox(
@@ -290,9 +290,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: _linkText(
                           'I have read the ',
                           linkLabel: 'Privacy Policy',
-                          url: _legal?.privacyUrl ?? 'https://motoriq.co.uk/privacy',
+                          url: _legal?.privacyUrl ?? 'https://saveondrive.co.uk/privacy',
                           trailing:
-                              ' and consent to MOTORIQ processing my data as described.',
+                              ' and consent to SaveOnDrive processing my data as described.',
                         ),
                       ),
                       // Separate and optional — bundling marketing into the
@@ -334,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: _busy ? null : _toggleMode,
                       child: Text(_isRegister
                           ? 'Have an account? Sign in'
-                          : 'New to MOTORIQ? Create an account'),
+                          : 'New to SaveOnDrive? Create an account'),
                     ),
                     // The server picker is a development tool — members should
                     // never see it, let alone be able to point the app at
@@ -507,7 +507,7 @@ class _Logo extends StatelessWidget {
           child: const Icon(Icons.directions_car_filled, color: Colors.white),
         ),
         const SizedBox(width: 10),
-        const Text('MOTORIQ',
+        const Text('SaveOnDrive',
             style: TextStyle(
                 fontSize: 28, fontWeight: FontWeight.w800, color: kBrandDark)),
       ],

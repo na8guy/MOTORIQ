@@ -300,7 +300,7 @@ class _UnpricedNote extends StatelessWidget {
 ///
 /// NOT decoration — a condition of use. OCM data is CC BY-SA 4.0 and the API
 /// terms require the data provider attribution and licence to be "visible to
-/// the end user". Removing this would put MOTORIQ in breach of the licence it
+/// the end user". Removing this would put SaveOnDrive in breach of the licence it
 /// relies on, so it renders whenever live OCM data is shown.
 class _OcmAttribution extends StatelessWidget {
   const _OcmAttribution();

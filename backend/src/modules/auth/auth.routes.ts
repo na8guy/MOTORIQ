@@ -147,7 +147,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     const { token } = z.object({ token: z.string().min(10) }).parse(req.query);
     try {
       await verifyToken(token);
-      reply.type('text/html').send(resultPage(true, 'Your email is verified. You can return to the MOTORIQ app.'));
+      reply.type('text/html').send(resultPage(true, 'Your email is verified. You can return to the SaveOnDrive app.'));
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Verification failed';
       reply.code(400).type('text/html').send(resultPage(false, msg));
@@ -173,7 +173,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
   /**
    * Start a reset. Always returns the same response whether or not the address
    * has an account: a different answer would turn this into a free tool for
-   * discovering who has a MOTORIQ account.
+   * discovering who has a SaveOnDrive account.
    */
   app.post('/forgot-password', async (req) => {
     const { email } = forgotBody.parse(req.body);
@@ -259,10 +259,10 @@ function publicUser(u: {
  */
 function resetPage(token: string): string {
   const safeToken = token.replace(/[^a-f0-9]/gi, ''); // tokens are hex; never reflect anything else
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset your MOTORIQ password</title></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset your SaveOnDrive password</title></head>
   <body style="font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F6F8FB;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center">
     <div style="background:#fff;border:1px solid #E1E7EF;border-radius:16px;padding:32px;max-width:420px;width:90%">
-      <div style="background:#1F6FEB;color:#fff;border-radius:8px;padding:4px 8px;font-weight:800;display:inline-block;margin-bottom:16px">MOTORIQ</div>
+      <div style="background:#1F6FEB;color:#fff;border-radius:8px;padding:4px 8px;font-weight:800;display:inline-block;margin-bottom:16px">SaveOnDrive</div>
       <h2 style="margin:0 0 8px;color:#0B2545">Choose a new password</h2>
       <p style="color:#475569;font-size:14px;margin:0 0 16px">At least 10 characters. Avoid common passwords and your own name.</p>
       <form id="f">
@@ -285,7 +285,7 @@ function resetPage(token: string): string {
           body:JSON.stringify({token:${JSON.stringify(safeToken)},password:a})})
         .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
         .then(function(res){
-          if(res.ok){f.style.display='none';m.style.color='#16A34A';m.textContent='Password reset. You can now sign in with your new password in the MOTORIQ app.';}
+          if(res.ok){f.style.display='none';m.style.color='#16A34A';m.textContent='Password reset. You can now sign in with your new password in the SaveOnDrive app.';}
           else{m.style.color='#DC2626';m.textContent=(res.j&&res.j.error&&res.j.error.message)||'Could not reset password.';}
         })
         .catch(function(){m.style.color='#DC2626';m.textContent='Network error — please try again.';});
@@ -297,7 +297,7 @@ function resetPage(token: string): string {
 function resultPage(ok: boolean, message: string): string {
   const color = ok ? '#16A34A' : '#DC2626';
   const icon = ok ? '✓' : '✕';
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MOTORIQ</title></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SaveOnDrive</title></head>
   <body style="font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#F6F8FB;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center">
     <div style="background:#fff;border:1px solid #E1E7EF;border-radius:16px;padding:32px;max-width:420px;text-align:center">
       <div style="width:56px;height:56px;border-radius:50%;background:${color}1a;color:${color};font-size:28px;line-height:56px;margin:0 auto 16px">${icon}</div>

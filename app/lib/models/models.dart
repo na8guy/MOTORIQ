@@ -1,4 +1,4 @@
-/// Data models mirroring the MOTORIQ API responses.
+/// Data models mirroring the SaveOnDrive API responses.
 /// All monetary values arrive as integer minor units (pence).
 library;
 
@@ -548,9 +548,9 @@ class LegalDocs {
 
   factory LegalDocs.fromJson(Map<String, dynamic> j) => LegalDocs(
         termsVersion: (j['termsVersion'] as String?) ?? '',
-        termsUrl: (j['termsUrl'] as String?) ?? 'https://motoriq.co.uk/terms',
+        termsUrl: (j['termsUrl'] as String?) ?? 'https://saveondrive.co.uk/terms',
         privacyVersion: (j['privacyVersion'] as String?) ?? '',
-        privacyUrl: (j['privacyUrl'] as String?) ?? 'https://motoriq.co.uk/privacy',
+        privacyUrl: (j['privacyUrl'] as String?) ?? 'https://saveondrive.co.uk/privacy',
       );
 }
 

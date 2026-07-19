@@ -12,7 +12,7 @@ class ThemeState extends ChangeNotifier {
   ThemeState(this._storage);
 
   final FlutterSecureStorage _storage;
-  static const _key = 'motoriq_theme_mode';
+  static const _key = 'saveondrive_theme_mode';
 
   ThemeMode _mode = ThemeMode.system;
   ThemeMode get mode => _mode;

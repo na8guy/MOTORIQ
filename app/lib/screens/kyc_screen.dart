@@ -91,7 +91,7 @@ class _KycScreenState extends State<KycScreen> {
           Text(
             verified
                 ? 'You are fully verified. Your wallet and Mastercard are active.'
-                : 'MOTORIQ moves money, so we must verify your identity (KYC) before you can top up or use your card. Verification is handled by our regulated banking partner.',
+                : 'SaveOnDrive moves money, so we must verify your identity (KYC) before you can top up or use your card. Verification is handled by our regulated banking partner.',
             style: TextStyle(color: context.mq.muted),
           ),
           const SizedBox(height: 20),

@@ -88,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Delete account?'),
         content: const Text(
-          'This permanently deletes your MOTORIQ account, wallet, vehicles and '
+          'This permanently deletes your SaveOnDrive account, wallet, vehicles and '
           'saved history. This cannot be undone.',
         ),
         actions: [
@@ -251,9 +251,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   static String _tierLabel(String tier) => switch (tier) {
-        'PLUS' => 'MOTORIQ Plus',
-        'DRIVE' => 'MOTORIQ Drive',
-        'DRIVE_PLUS' => 'MOTORIQ Drive+',
+        'PLUS' => 'SaveOnDrive Plus',
+        'DRIVE' => 'SaveOnDrive Drive',
+        'DRIVE_PLUS' => 'SaveOnDrive Drive+',
         _ => 'Free',
       };
 

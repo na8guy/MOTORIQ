@@ -15,6 +15,10 @@ import cardsRoutes from './modules/cards/cards.routes.js';
 import subscriptionsRoutes from './modules/subscriptions/subscriptions.routes.js';
 import fuelRoutes from './modules/fuel/fuel.routes.js';
 import evRoutes from './modules/ev/ev.routes.js';
+import stripeRoutes from './modules/subscriptions/stripe.routes.js';
+import zonesRoutes from './modules/zones/zones.routes.js';
+import marketplaceRoutes from './modules/marketplace/marketplace.routes.js';
+import healthReportRoutes from './modules/health/health.routes.js';
 import savingsRoutes from './modules/savings/savings.routes.js';
 import referralsRoutes from './modules/referrals/referrals.routes.js';
 import kycRoutes from './modules/kyc/kyc.routes.js';
@@ -44,7 +48,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Health check + service metadata.
   app.get('/health', async () => ({
     status: 'ok',
-    service: 'motoriq-api',
+    service: 'saveondrive-api',
     time: new Date().toISOString(),
     integrations: {
       wallester: env.WALLESTER_MOCK ? 'mock' : 'live',
@@ -114,6 +118,12 @@ export async function buildApp(): Promise<FastifyInstance> {
       await v1.register(walletRoutes, { prefix: '/wallet' });
       await v1.register(cardsRoutes, { prefix: '/cards' });
       await v1.register(subscriptionsRoutes, { prefix: '/subscriptions' });
+      // Stripe webhooks need the RAW body for signature verification, so they
+      // register in their own encapsulated context with a different parser.
+      await v1.register(stripeRoutes, { prefix: '/stripe' });
+      await v1.register(zonesRoutes, { prefix: '/zones' });
+      await v1.register(marketplaceRoutes, { prefix: '/marketplace' });
+      await v1.register(healthReportRoutes, { prefix: '/health-report' });
       await v1.register(fuelRoutes, { prefix: '/fuel' });
       await v1.register(evRoutes, { prefix: '/ev' });
       await v1.register(savingsRoutes, { prefix: '/savings' });

@@ -212,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? Text('Accepted ${_fmtDate(user!.termsAcceptedAt!)}')
                       : null,
                   trailing: const Icon(Icons.open_in_new, size: 16),
-                  onTap: () => _open(_legal?.termsUrl ?? 'https://motoriq.co.uk/terms'),
+                  onTap: () => _open(_legal?.termsUrl ?? 'https://saveondrive.co.uk/terms'),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -222,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? Text('Accepted ${_fmtDate(user!.privacyAcceptedAt!)}')
                       : null,
                   trailing: const Icon(Icons.open_in_new, size: 16),
-                  onTap: () => _open(_legal?.privacyUrl ?? 'https://motoriq.co.uk/privacy'),
+                  onTap: () => _open(_legal?.privacyUrl ?? 'https://saveondrive.co.uk/privacy'),
                 ),
               ],
             ),

@@ -25,7 +25,7 @@ class NetworkException extends ApiException {
 /// give the first request generous headroom.
 const _requestTimeout = Duration(seconds: 45);
 
-/// Low-level HTTP client for the MOTORIQ API.
+/// Low-level HTTP client for the SaveOnDrive API.
 ///
 /// - Injects the bearer access token on every request.
 /// - Persists tokens in secure storage.
@@ -35,8 +35,8 @@ class ApiClient {
 
   final http.Client _http;
   static const _storage = FlutterSecureStorage();
-  static const _kAccess = 'motoriq_access';
-  static const _kRefresh = 'motoriq_refresh';
+  static const _kAccess = 'saveondrive_access';
+  static const _kRefresh = 'saveondrive_refresh';
 
   Future<String?> get accessToken => _storage.read(key: _kAccess);
   Future<String?> get refreshToken => _storage.read(key: _kRefresh);

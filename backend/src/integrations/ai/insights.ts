@@ -41,7 +41,7 @@ export async function generateSavingsInsight(
   };
 
   const system =
-    'You are MOTORIQ, a UK motoring savings assistant. Given a member\'s verified fuel-savings figures, ' +
+    'You are SaveOnDrive, a UK motoring savings assistant. Given a member\'s verified fuel-savings figures, ' +
     'write a short, warm, factual summary and 2–4 concrete money-saving tips. Use British English and £. ' +
     'Never invent numbers — only use the figures provided. Keep it concise.';
 
@@ -94,7 +94,7 @@ function ruleBasedInsight(summary: SavingsSummary): SavingsInsight {
 
   const tips: string[] = [];
   if (summary.purchaseCount === 0) {
-    tips.push('Log your fill-ups in the app so MOTORIQ can track your savings.');
+    tips.push('Log your fill-ups in the app so SaveOnDrive can track your savings.');
   } else {
     tips.push('Use the Fuel tab to find the cheapest station before you fill up.');
     tips.push('Fill up mid-week — prices often creep up before the weekend.');
@@ -102,7 +102,7 @@ function ruleBasedInsight(summary: SavingsSummary): SavingsInsight {
   if (summary.totalSavedMinor <= 0 && summary.purchaseCount > 0) {
     tips.push('You paid around the local average recently — switching stations could unlock savings.');
   }
-  tips.push('Consider MOTORIQ Plus for cashback on top of your fuel savings.');
+  tips.push('Consider SaveOnDrive Plus for cashback on top of your fuel savings.');
 
   return {
     headline:
@@ -110,7 +110,7 @@ function ruleBasedInsight(summary: SavingsSummary): SavingsInsight {
     narrative:
       `Across ${period} you logged ${summary.purchaseCount} fuel purchase(s) totalling ` +
       `${formatGBP(summary.totalSpentMinor)}. Against the local average you saved ${saved}. ` +
-      `At this rate that's about ${annual} a year with MOTORIQ.`,
+      `At this rate that's about ${annual} a year with SaveOnDrive.`,
     tips: tips.slice(0, 4),
     source: 'rules',
   };

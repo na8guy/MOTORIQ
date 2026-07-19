@@ -110,8 +110,22 @@ const schema = z.object({
   // older must accept again (UK GDPR requires demonstrable, current consent).
   TERMS_VERSION: z.string().default('2026-07-16'),
   PRIVACY_VERSION: z.string().default('2026-07-16'),
-  TERMS_URL: z.string().default('https://motoriq.co.uk/terms'),
-  PRIVACY_URL: z.string().default('https://motoriq.co.uk/privacy'),
+  TERMS_URL: z.string().default('https://saveondrive.co.uk/terms'),
+  PRIVACY_URL: z.string().default('https://saveondrive.co.uk/privacy'),
+
+  // ── Stripe (membership billing) ──
+  // Without STRIPE_SECRET_KEY the client runs in mock mode: checkout returns a
+  // fake URL and nothing is charged, so the upgrade flow stays testable before
+  // the account exists. /admin/diagnostics reports which mode is live.
+  //
+  // STRIPE_WEBHOOK_SECRET is not optional in spirit: without it the webhook
+  // endpoint refuses every event, because an unverified webhook would let
+  // anyone POST "subscription active" and grant themselves Pro for free.
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  /** Where Stripe sends the member back to after checkout. */
+  STRIPE_SUCCESS_URL: z.string().default('saveondrive://billing/success'),
+  STRIPE_CANCEL_URL: z.string().default('saveondrive://billing/cancelled'),
 
   // AI savings insights (Claude). Optional — falls back to a rule-based
   // narrative when no key is set.
@@ -125,7 +139,7 @@ const schema = z.object({
   FCM_PRIVATE_KEY: z.string().optional(), // PEM, \n-escaped
 
   // Admin seeding (used by `npm run seed`).
-  ADMIN_EMAIL: z.string().default('admin@motoriq.co.uk'),
+  ADMIN_EMAIL: z.string().default('admin@saveondrive.co.uk'),
   ADMIN_PASSWORD: z.string().default('admin12345'),
 
   // Email (Resend) + email verification.
@@ -134,7 +148,7 @@ const schema = z.object({
   // Must be an address on a domain you've verified in Resend. Using the shared
   // onboarding@resend.dev sandbox only allows sending to your own Resend
   // account email — a verified domain can send to any recipient.
-  EMAIL_FROM: z.string().default('MOTORIQ <noreply@wanadryve.xyz>'),
+  EMAIL_FROM: z.string().default('SaveOnDrive <noreply@wanadryve.xyz>'),
   // Public base URL of THIS API (used to build the verification link).
   APP_PUBLIC_URL: z.string().default('http://localhost:4000'),
   // If true, unverified users cannot log in. Default false (won't lock anyone out).

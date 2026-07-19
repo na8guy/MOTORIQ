@@ -77,7 +77,7 @@ export async function driveTimes(
 
     const res = await request(url, {
       method: 'GET',
-      headers: { 'user-agent': 'MOTORIQ/1.0' },
+      headers: { 'user-agent': 'SaveOnDrive/1.0' },
       headersTimeout: 8000,
       bodyTimeout: 8000,
     });

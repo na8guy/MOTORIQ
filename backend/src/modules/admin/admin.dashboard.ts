@@ -1,5 +1,5 @@
 /**
- * Self-contained MOTORIQ Ops dashboard, served at GET /admin.
+ * Self-contained SaveOnDrive Ops dashboard, served at GET /admin.
  * Same-origin: it talks to /api/v1/* with an admin bearer token.
  */
 export const ADMIN_DASHBOARD_HTML = /* html */ `<!doctype html>
@@ -7,7 +7,7 @@ export const ADMIN_DASHBOARD_HTML = /* html */ `<!doctype html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MOTORIQ · Ops</title>
+<title>SaveOnDrive · Ops</title>
 <style>
   :root { --blue:#1F6FEB; --dark:#0B2545; --green:#16A34A; --red:#DC2626; --amber:#D97706; --line:#E1E7EF; --bg:#F6F8FB; }
   * { box-sizing:border-box; } body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:#0f172a; }
@@ -32,13 +32,13 @@ export const ADMIN_DASHBOARD_HTML = /* html */ `<!doctype html>
 </style>
 </head>
 <body>
-<header><span class="logo">MOTORIQ</span><strong>Ops Dashboard</strong><span id="who" class="muted" style="margin-left:auto"></span></header>
+<header><span class="logo">SaveOnDrive</span><strong>Ops Dashboard</strong><span id="who" class="muted" style="margin-left:auto"></span></header>
 <main>
   <div id="login" class="card">
     <h2>Admin sign in</h2>
     <p class="muted" style="font-size:13px">Sign in with an ADMIN account.</p>
     <div style="display:grid;gap:10px">
-      <input id="email" placeholder="Email" value="admin@motoriq.co.uk" />
+      <input id="email" placeholder="Email" value="admin@saveondrive.co.uk" />
       <input id="password" type="password" placeholder="Password" value="admin12345" />
       <button class="btn" onclick="login()">Sign in</button>
       <div id="loginErr" class="muted" style="color:var(--red)"></div>

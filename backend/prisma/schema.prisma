@@ -1,4 +1,4 @@
-// MOTORIQ data model
+// SaveOnDrive data model
 // "The Smart Membership for Cheaper Driving"
 
 generator client {
@@ -14,9 +14,8 @@ datasource db {
 
 enum Tier {
   FREE
-  PLUS
-  DRIVE
-  DRIVE_PLUS
+  PREMIUM
+  PRO
 }
 
 enum Role {
@@ -25,15 +24,15 @@ enum Role {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
+  id            String  @id @default(cuid())
+  email         String  @unique
   passwordHash  String
   firstName     String?
   lastName      String?
   phone         String?
-  tier          Tier     @default(FREE)
-  role          Role     @default(USER)
-  emailVerified Boolean  @default(false)
+  tier          Tier    @default(FREE)
+  role          Role    @default(USER)
+  emailVerified Boolean @default(false)
 
   // ── Consent (UK GDPR) ──
   // Recorded per acceptance with the version accepted, because consent must be
@@ -46,26 +45,43 @@ model User {
   privacyVersion    String?
   marketingOptIn    Boolean   @default(false)
 
-  /** Display units. UK drivers think in miles, so that's the default. */
+  /**
+   * Display units. UK drivers think in miles, so that's the default.
+   */
   distanceUnit DistanceUnit @default(MILES)
+
+  // ── Admin tier simulation ──
+  // Lets an admin experience a paid tier without paying, to test what members
+  // actually see. Deliberately a stored column rather than something inferred:
+  // it appears in the audit log, survives a restart, and — because only an
+  // ADMIN check ever sets it — a member cannot grant it to themselves.
+  simulatedTier Tier?
+
+  /**
+   * Stripe customer id, so a member keeps one customer across subscriptions.
+   */
+  stripeCustomerId String? @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  vehicles      Vehicle[]
-  reminders     Reminder[]
-  wallet        Wallet?
-  cards         Card[]
-  subscription  Subscription?
-  savings       SavingsRecord[]
-  refreshTokens RefreshToken[]
-  referralsMade Referral[]      @relation("Referrer")
+  vehicles           Vehicle[]
+  reminders          Reminder[]
+  wallet             Wallet?
+  cards              Card[]
+  subscription       Subscription?
+  savings            SavingsRecord[]
+  refreshTokens      RefreshToken[]
+  referralsMade      Referral[]          @relation("Referrer")
   kyc                KycProfile?
   riskEvents         RiskEvent[]
   fuelPurchases      FuelPurchase[]
   deviceTokens       DeviceToken[]
   notifications      Notification[]
   verificationTokens VerificationToken[]
+  perkGrants         PerkGrant[]
+  serviceBookings    ServiceBooking[]
+  gloveboxDocuments  GloveboxDocument[]
 
   @@map("users")
 }
@@ -76,12 +92,16 @@ enum TokenPurpose {
 }
 
 model VerificationToken {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /** Stored as a SHA-256 hash — see auth token helpers for why. */
-  token  String @unique
-  /** One table, two jobs: a reset token must never verify an email, or vice versa. */
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /**
+   * Stored as a SHA-256 hash — see auth token helpers for why.
+   */
+  token     String       @unique
+  /**
+   * One table, two jobs: a reset token must never verify an email, or vice versa.
+   */
   purpose   TokenPurpose @default(EMAIL_VERIFY)
   expiresAt DateTime
   usedAt    DateTime?
@@ -135,13 +155,13 @@ model Notification {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@map("refresh_tokens")
@@ -179,7 +199,9 @@ model Vehicle {
   motStatus     String?
   motExpiryDate DateTime?
   dvlaSyncedAt  DateTime?
-  /** Why the last sync failed (unregistered key, unknown VRN, …). */
+  /**
+   * Why the last sync failed (unregistered key, unknown VRN, …).
+   */
   dvlaSyncError String?
 
   // ── Member-entered: no public API exists for these ──
@@ -211,19 +233,21 @@ enum ReminderType {
 }
 
 model Reminder {
-  id        String       @id @default(cuid())
-  userId    String
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vehicleId String?
-  vehicle   Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  type      ReminderType
-  dueDate   DateTime
-  note      String?
-  completed Boolean      @default(false)
-  /** Last time we pinged the member — stops a re-run notifying twice a day. */
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId  String?
+  vehicle    Vehicle?     @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  type       ReminderType
+  dueDate    DateTime
+  note       String?
+  completed  Boolean      @default(false)
+  /**
+   * Last time we pinged the member — stops a re-run notifying twice a day.
+   */
   notifiedAt DateTime?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   @@index([userId])
   @@index([dueDate])
@@ -310,32 +334,93 @@ model Card {
 
 enum SubPlan {
   FREE
-  PLUS
-  DRIVE
-  DRIVE_PLUS
+  PREMIUM
+  PRO
 }
 
 enum SubStatus {
+  /// Paid and current.
   ACTIVE
+  /// In a free trial.
+  TRIALING
+  /// Payment failed; Stripe is retrying. Access continues briefly by design —
+  /// a card expiring should not instantly strip someone of breakdown cover.
   PAST_DUE
+  /// Cancelled. Features last until currentPeriodEnd, which they paid for.
   CANCELLED
+  /// Stripe gave up after retries, or the member was refunded.
+  UNPAID
+  /// Checkout started but never completed.
+  INCOMPLETE
+}
+
+enum BillingPeriod {
+  MONTHLY
+  ANNUAL
 }
 
 model Subscription {
-  id             String    @id @default(cuid())
-  userId         String    @unique
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan           SubPlan   @default(FREE)
-  status         SubStatus @default(ACTIVE)
-  // For DRIVE tiers: the monthly mileage package (500 / 1000 / 1500).
-  mileagePackage Int?
-  priceMinor     Int       @default(0) // monthly price in pence
-  startedAt      DateTime  @default(now())
-  renewsAt       DateTime?
-  cancelledAt    DateTime?
-  updatedAt      DateTime  @updatedAt
+  id     String    @id @default(cuid())
+  userId String    @unique
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan   SubPlan   @default(FREE)
+  status SubStatus @default(ACTIVE)
 
+  billingPeriod BillingPeriod @default(MONTHLY)
+  priceMinor    Int           @default(0)
+
+  // ── Stripe ──
+  // Stripe is the source of truth for whether money arrived. These ids let a
+  // webhook find the right row, and let us open the customer portal.
+  stripeSubscriptionId String? @unique
+  stripePriceId        String?
+
+  /// End of the paid period. A cancelled member keeps their features until
+  /// this passes — they paid for that time.
+  currentPeriodEnd  DateTime?
+  /// Set when they cancel but the period has not yet ended.
+  cancelAtPeriodEnd Boolean   @default(false)
+
+  startedAt   DateTime  @default(now())
+  renewsAt    DateTime?
+  cancelledAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([stripeSubscriptionId])
   @@map("subscriptions")
+}
+
+/// Perks are per-period allowances (6 litres a month, 1 MOT a year). This is
+/// the ledger that stops a member claiming January's litres twice.
+model PerkGrant {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  kind   PerkKind
+  /// The period this belongs to: "2026-07" monthly, "2026" annual.
+  period String
+
+  /// Allowance for the period (litres, or a count of services).
+  allowance  Int
+  /// How much has been claimed.
+  claimed    Int @default(0)
+  /// Cash value granted, in pence — what this perk actually cost us.
+  valueMinor Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, kind, period])
+  @@index([userId])
+  @@map("perk_grants")
+}
+
+enum PerkKind {
+  FUEL_LITRES
+  SERVICE
+  MOT
+  BREAKDOWN
 }
 
 // ─────────────────────────── Savings & rewards ───────────────────────────
@@ -388,7 +473,7 @@ model Referral {
 }
 
 // ─────────────────────────── KYC / identity ───────────────────────────
-// Because MOTORIQ moves money (prepaid wallet + Mastercard), members must
+// Because SaveOnDrive moves money (prepaid wallet + Mastercard), members must
 // pass identity checks (KYC) before financial actions are enabled. The
 // banking partner (Wallester) performs the regulated AML/KYC; we collect
 // and mirror the verification state here.
@@ -492,11 +577,17 @@ model FuelPurchase {
   status             PurchaseStatus @default(CONFIRMED)
   confirmationSource ConfirmSource?
   confirmedAt        DateTime?
-  /** A PENDING intent past this is swept to EXPIRED and never counted. */
+  /**
+   * A PENDING intent past this is swept to EXPIRED and never counted.
+   */
   expiresAt          DateTime?
-  /** Station identity, so a card transaction can be matched back to the intent. */
+  /**
+   * Station identity, so a card transaction can be matched back to the intent.
+   */
   siteId             String?
-  /** Set when we've asked "did you fill up?", so we only ask once. */
+  /**
+   * Set when we've asked "did you fill up?", so we only ask once.
+   */
   promptedAt         DateTime?
 
   @@index([userId])
@@ -523,4 +614,140 @@ enum ConfirmSource {
   MEMBER
   /// Logged by hand, or imported.
   MANUAL
+}
+
+// ─────────────────────────── Service marketplace ───────────────────────────
+
+/// A vetted garage or fitter we can book on a member's behalf.
+///
+/// Commission revenue is the point: the member gets one-tap booking, the
+/// partner gets a customer, and we take a percentage. commissionBps is stored
+/// per partner because it is negotiated per deal, not fixed.
+model ServicePartner {
+  id            String   @id @default(cuid())
+  name          String
+  /// MOT, SERVICE, TYRES, VALETING, REPAIR — a partner may offer several.
+  services      String[]
+  address       String
+  postcode      String
+  latitude      Float
+  longitude     Float
+  phone         String?
+  /// 0–5, from our own vetting plus member feedback.
+  rating        Float?
+  ratingCount   Int      @default(0)
+  /// Our cut, in basis points (250 = 2.5%).
+  commissionBps Int      @default(1000)
+  /// Vetted partners only are bookable. Unvetted ones are listed but not sold.
+  vetted        Boolean  @default(false)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookings ServiceBooking[]
+
+  @@index([postcode])
+  @@map("service_partners")
+}
+
+enum BookingStatus {
+  /// Member asked; the garage has not confirmed a slot.
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  /// The garage could not take it.
+  DECLINED
+}
+
+model ServiceBooking {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String?
+
+  partnerId String
+  partner   ServicePartner @relation(fields: [partnerId], references: [id])
+
+  /// MOT | SERVICE | TYRES | VALETING | REPAIR
+  serviceType String
+  status      BookingStatus @default(REQUESTED)
+
+  /// When the member wants it, and when the garage actually confirmed.
+  requestedFor DateTime
+  confirmedFor DateTime?
+
+  quotedMinor      Int?
+  paidMinor        Int?
+  /// Our commission on this booking, once completed.
+  commissionMinor  Int?
+  /// Set when a membership perk covered some or all of it.
+  perkAppliedMinor Int  @default(0)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([partnerId])
+  @@index([status])
+  @@map("service_bookings")
+}
+
+// ─────────────────────────── Vehicle health ───────────────────────────
+
+/// A periodic assessment of a vehicle, generated from what we actually know:
+/// MOT history and advisories, mileage, age, and reminder status. Deliberately
+/// NOT a diagnosis — see vehicle-health.service.ts for what each score means.
+model VehicleHealthReport {
+  id        String @id @default(cuid())
+  userId    String
+  vehicleId String
+
+  /// 0–100. Higher is healthier.
+  score Int
+  /// GOOD | ATTENTION | URGENT
+  band  String
+
+  /// The findings, each with a severity and a reason.
+  findings Json
+  /// What we suggest doing, most urgent first.
+  actions  Json
+
+  /// Estimated cost of the recommended work, in pence.
+  estimatedCostMinor Int?
+
+  generatedAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("vehicle_health_reports")
+}
+
+// ─────────────────────────── Digital glovebox ───────────────────────────
+
+/// Documents a member stores against a vehicle — MOT certificates, insurance,
+/// service history. Files live in object storage; only metadata is here.
+model GloveboxDocument {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId String?
+
+  /// MOT | INSURANCE | SERVICE | V5C | WARRANTY | OTHER
+  kind       String
+  title      String
+  /// Where the file actually lives. Never the file itself.
+  storageKey String
+  mimeType   String
+  sizeBytes  Int
+  /// Renewal/expiry, so the glovebox can feed reminders.
+  expiresAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@map("glovebox_documents")
 }

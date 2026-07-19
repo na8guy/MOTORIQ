@@ -45,7 +45,7 @@ class LocatedPosition {
   String? get problem => switch (source) {
         LocationSource.gps => null,
         LocationSource.serviceDisabled => 'Location is turned off on this device',
-        LocationSource.denied => 'MOTORIQ needs location permission',
+        LocationSource.denied => 'SaveOnDrive needs location permission',
         LocationSource.deniedForever =>
           'Location permission is blocked — enable it in Settings',
         LocationSource.error => "Couldn't get a location fix",

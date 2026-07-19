@@ -157,7 +157,7 @@ class OsmHoursClient {
     try {
       const res = await request(`${OVERPASS_URL}?data=${encodeURIComponent(q)}`, {
         method: 'GET',
-        headers: { 'user-agent': 'MOTORIQ/1.0 (+https://motoriq.co.uk)' },
+        headers: { 'user-agent': 'SaveOnDrive/1.0 (+https://saveondrive.co.uk)' },
         headersTimeout: 20_000,
         bodyTimeout: 20_000,
       });

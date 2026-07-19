@@ -57,7 +57,7 @@ class _ReferralsScreenState extends State<ReferralsScreen> {
                     Text('Give £10, get £10',
                         style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
                     SizedBox(height: 6),
-                    Text('Share your code. When a friend joins MOTORIQ, you both get £10 in your wallet.',
+                    Text('Share your code. When a friend joins SaveOnDrive, you both get £10 in your wallet.',
                         style: TextStyle(color: Colors.white70)),
                   ],
                 ),

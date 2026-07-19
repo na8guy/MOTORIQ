@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// MOTORIQ brand theme.
+/// SaveOnDrive brand theme.
 ///
 /// The brand colours are fixed, but they can't be used raw on both grounds:
 /// #1F6FEB is sized for white paper and goes muddy on navy, and #16A34A loses
 /// too much contrast to read as "money" in the dark. So each has a dark-ground
 /// counterpart — same hue, lifted for legibility. Everything else is a semantic
-/// token on [MotoriqColors], never a literal in a widget, so a screen can't
+/// token on [SaveOnDriveColors], never a literal in a widget, so a screen can't
 /// look right in one theme and broken in the other.
 const kBrandBlue = Color(0xFF1F6FEB);
 const kBrandDark = Color(0xFF0B2545);
@@ -36,8 +36,8 @@ const _brandGreenText = Color(0xFF15803D);
 /// warning / danger) are separate from the brand accent on purpose — a warning
 /// must not be brand blue just because blue is the accent.
 @immutable
-class MotoriqColors extends ThemeExtension<MotoriqColors> {
-  const MotoriqColors({
+class SaveOnDriveColors extends ThemeExtension<SaveOnDriveColors> {
+  const SaveOnDriveColors({
     required this.muted,
     required this.faint,
     required this.border,
@@ -79,7 +79,7 @@ class MotoriqColors extends ThemeExtension<MotoriqColors> {
   final List<Color> brandGradient;
 
   @override
-  MotoriqColors copyWith({
+  SaveOnDriveColors copyWith({
     Color? muted,
     Color? faint,
     Color? border,
@@ -94,7 +94,7 @@ class MotoriqColors extends ThemeExtension<MotoriqColors> {
     Color? neutralBg,
     List<Color>? brandGradient,
   }) {
-    return MotoriqColors(
+    return SaveOnDriveColors(
       muted: muted ?? this.muted,
       faint: faint ?? this.faint,
       border: border ?? this.border,
@@ -112,9 +112,9 @@ class MotoriqColors extends ThemeExtension<MotoriqColors> {
   }
 
   @override
-  MotoriqColors lerp(ThemeExtension<MotoriqColors>? other, double t) {
-    if (other is! MotoriqColors) return this;
-    return MotoriqColors(
+  SaveOnDriveColors lerp(ThemeExtension<SaveOnDriveColors>? other, double t) {
+    if (other is! SaveOnDriveColors) return this;
+    return SaveOnDriveColors(
       muted: Color.lerp(muted, other.muted, t)!,
       faint: Color.lerp(faint, other.faint, t)!,
       border: Color.lerp(border, other.border, t)!,
@@ -134,7 +134,7 @@ class MotoriqColors extends ThemeExtension<MotoriqColors> {
     );
   }
 
-  static const light = MotoriqColors(
+  static const light = SaveOnDriveColors(
     // Neutrals carry a blue bias rather than being pure grey — a flat mid-grey
     // next to a blue accent reads as unconsidered.
     muted: Color(0xFF5A6B84),
@@ -152,7 +152,7 @@ class MotoriqColors extends ThemeExtension<MotoriqColors> {
     brandGradient: [kBrandBlue, kBrandDark],
   );
 
-  static const dark = MotoriqColors(
+  static const dark = SaveOnDriveColors(
     muted: Color(0xFF9AAEC8),
     faint: Color(0xFF6B819D),
     border: Color(0xFF1E3B59),
@@ -173,13 +173,13 @@ class MotoriqColors extends ThemeExtension<MotoriqColors> {
 }
 
 /// Convenience: `context.mq.muted` instead of the full lookup.
-extension MotoriqTheme on BuildContext {
-  MotoriqColors get mq => Theme.of(this).extension<MotoriqColors>()!;
+extension SaveOnDriveTheme on BuildContext {
+  SaveOnDriveColors get mq => Theme.of(this).extension<SaveOnDriveColors>()!;
 }
 
 ThemeData buildTheme({Brightness brightness = Brightness.light}) {
   final isDark = brightness == Brightness.dark;
-  final tokens = isDark ? MotoriqColors.dark : MotoriqColors.light;
+  final tokens = isDark ? SaveOnDriveColors.dark : SaveOnDriveColors.light;
 
   // Deeper than brand navy so cards (which sit near the brand navy) still have
   // somewhere to sit above the page.

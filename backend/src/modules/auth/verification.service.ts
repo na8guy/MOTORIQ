@@ -111,7 +111,7 @@ export async function resendVerification(emailAddr: string): Promise<void> {
 /**
  * Start a reset. Always resolves, whether or not the address exists — the
  * route returns the same response either way, so this endpoint can't be used to
- * discover which email addresses have MOTORIQ accounts.
+ * discover which email addresses have SaveOnDrive accounts.
  */
 export async function requestPasswordReset(emailAddr: string): Promise<void> {
   const user = await prisma.user.findUnique({ where: { email: emailAddr } });

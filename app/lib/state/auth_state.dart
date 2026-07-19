@@ -46,10 +46,10 @@ class AuthState extends ChangeNotifier {
   Future<void> _registerDevice() async {
     try {
       const storage = FlutterSecureStorage();
-      var token = await storage.read(key: 'motoriq_device');
+      var token = await storage.read(key: 'saveondrive_device');
       if (token == null) {
         token = 'dev-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}';
-        await storage.write(key: 'motoriq_device', value: token);
+        await storage.write(key: 'saveondrive_device', value: token);
       }
       final platform = switch (defaultTargetPlatform) {
         TargetPlatform.iOS => 'IOS',

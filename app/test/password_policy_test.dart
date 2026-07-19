@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:motoriq_app/password_policy.dart';
+import 'package:saveondrive_app/password_policy.dart';
 
 /// These cases mirror the backend's password test exactly. If the two ever
 /// disagree, the meter would call a password strong and the API would reject
@@ -15,7 +15,7 @@ void main() {
   group('rejects weak passwords', () {
     for (final pw in [
       'Passw0rd!!', 'P@ssw0rd123', 'password123', 'l3tm31n!!!', 'L3tM3In123',
-      'motoriq123', 'Motoriq1!!', 'Qw3rty123!', 'qwerty123456', 'aaaaaaaaaaaa',
+      'saveondrive123', 'SaveOnDrive1!!', 'Qw3rty123!', 'qwerty123456', 'aaaaaaaaaaaa',
       'abcd1234efgh', 'Tyna2020!!x', 'wood.tyna99!X', 'Welcome1!!',
       'Iloveyou99!', r'$unshine123', '123Password', 'Dr@gon1234', 'F00tball11',
       'short1!',
@@ -28,7 +28,7 @@ void main() {
     for (final pw in [
       'correct horse battery staple',
       'Tr0ub4dor&3xkcd',
-      'MotorIQ_Fuel_92!',
+      'SaveOnDrive_Fuel_92!',
       'Rainy-Kettle-88',
       'jubilant tractor mango 7',
       'Vg7#qLpZ2m',

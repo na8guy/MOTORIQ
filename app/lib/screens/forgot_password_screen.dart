@@ -10,7 +10,7 @@ import '../theme.dart';
 /// Deliberately says the same thing whether or not the address has an account —
 /// the API won't reveal which, and neither should this screen. Telling someone
 /// "no account with that email" turns a login form into a tool for discovering
-/// who has a MOTORIQ account.
+/// who has a SaveOnDrive account.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key, this.email});
 

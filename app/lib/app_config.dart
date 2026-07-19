@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Central configuration for the MOTORIQ app.
+/// Central configuration for the SaveOnDrive app.
 ///
 /// API base URL resolution order:
 ///   1. a runtime override the user set in-app (persisted) — lets an already
@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 ///   3. a sensible per-platform default.
 class AppConfig {
   static const _storage = FlutterSecureStorage();
-  static const _kApiUrl = 'motoriq_api_url';
+  static const _kApiUrl = 'saveondrive_api_url';
   static const _envUrl = String.fromEnvironment('API_BASE_URL');
 
   static String? _override;

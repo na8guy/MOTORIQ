@@ -1,12 +1,12 @@
-// Smoke tests for the MOTORIQ app shell.
+// Smoke tests for the SaveOnDrive app shell.
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:motoriq_app/main.dart';
-import 'package:motoriq_app/services/api_client.dart';
-import 'package:motoriq_app/state/theme_state.dart';
-import 'package:motoriq_app/theme.dart';
+import 'package:saveondrive_app/main.dart';
+import 'package:saveondrive_app/services/api_client.dart';
+import 'package:saveondrive_app/state/theme_state.dart';
+import 'package:saveondrive_app/theme.dart';
 
 void main() {
   // flutter_secure_storage talks to the Keychain, which doesn't exist in a
@@ -19,14 +19,14 @@ void main() {
 
   testWidgets('App boots to a MaterialApp', (tester) async {
     await tester.pumpWidget(
-      MotoriqApp(api: ApiClient(), themeState: ThemeState(const FlutterSecureStorage())),
+      SaveOnDriveApp(api: ApiClient(), themeState: ThemeState(const FlutterSecureStorage())),
     );
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 
   testWidgets('Both themes are wired up, and the mode is honoured', (tester) async {
     final themeState = ThemeState(const FlutterSecureStorage());
-    await tester.pumpWidget(MotoriqApp(api: ApiClient(), themeState: themeState));
+    await tester.pumpWidget(SaveOnDriveApp(api: ApiClient(), themeState: themeState));
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(app.theme, isNotNull, reason: 'light theme must exist');
@@ -43,12 +43,12 @@ void main() {
   });
 
   group('theme tokens', () {
-    test('both themes carry the MotoriqColors extension', () {
+    test('both themes carry the SaveOnDriveColors extension', () {
       // Every screen reads colours through this. If it were ever missing, the
       // `context.mq` lookup would throw at runtime rather than fail here.
       for (final b in [Brightness.light, Brightness.dark]) {
         final theme = buildTheme(brightness: b);
-        expect(theme.extension<MotoriqColors>(), isNotNull, reason: '$b needs tokens');
+        expect(theme.extension<SaveOnDriveColors>(), isNotNull, reason: '$b needs tokens');
       }
     });
 
@@ -71,7 +71,7 @@ void main() {
       // The lifted #5B9BFF reaches 5.89:1.
       for (final b in [Brightness.light, Brightness.dark]) {
         final theme = buildTheme(brightness: b);
-        final t = theme.extension<MotoriqColors>()!;
+        final t = theme.extension<SaveOnDriveColors>()!;
         final surface = theme.cardTheme.color!;
         expect(_contrast(t.accent, surface), greaterThanOrEqualTo(4.5),
             reason: '$b: accent sets small text on cards');
@@ -83,7 +83,7 @@ void main() {
     });
 
     test('the raw brand blue would fail as caption text on dark', () {
-      // Guards the reasoning above: if someone "simplifies" MotoriqColors.dark
+      // Guards the reasoning above: if someone "simplifies" SaveOnDriveColors.dark
       // back to the raw brand blue, this fails and says why.
       const rawBrandOnDarkCard = 3.52;
       expect(_contrast(kBrandBlue, const Color(0xFF0C2136)), lessThan(4.5),
@@ -95,7 +95,7 @@ void main() {
       // Status text is small too — a banner reading "Location is turned off"
       // is 12–13px.
       for (final b in [Brightness.light, Brightness.dark]) {
-        final t = buildTheme(brightness: b).extension<MotoriqColors>()!;
+        final t = buildTheme(brightness: b).extension<SaveOnDriveColors>()!;
         expect(_contrast(t.successFg, t.successBg), greaterThanOrEqualTo(4.5), reason: '$b success');
         expect(_contrast(t.warningFg, t.warningBg), greaterThanOrEqualTo(4.5), reason: '$b warning');
         expect(_contrast(t.dangerFg, t.dangerBg), greaterThanOrEqualTo(4.5), reason: '$b danger');

@@ -6,6 +6,10 @@ import { notify } from '../notifications/notifications.service.js';
 import { runDailyJobs } from '../../jobs/scheduler.js';
 import { fuelFinder } from '../../integrations/fuelfinder/fuelfinder.client.js';
 import { env } from '../../config/env.js';
+import { TIERS, type Tier } from '../entitlements/entitlements.js';
+import { grantPerksForPeriod } from '../subscriptions/perks.service.js';
+import { applyMembershipChange } from '../subscriptions/subscription.service.js';
+import { stripe } from '../../integrations/stripe/stripe.client.js';
 
 /** Guard: the caller must be an ADMIN. */
 async function requireAdmin(req: FastifyRequest, _reply: FastifyReply): Promise<void> {
@@ -125,6 +129,81 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
+  /**
+   * Switch your own account to any tier, to see what members on that tier see.
+   *
+   * Recorded as `simulatedTier` rather than by changing `tier`, which matters:
+   *   • the real membership and billing state are untouched, so exiting
+   *     simulation restores exactly what was there before;
+   *   • every response carries `simulated: true`, so a screenshot of "Pro" is
+   *     never mistaken for a paying member;
+   *   • it is set only behind requireAdmin, so a member cannot grant it to
+   *     themselves — which would be free Pro for anyone who read the API.
+   *
+   * No email is sent: nothing was bought. Real upgrades email; testing doesn't.
+   */
+  app.post('/simulate-tier', async (req) => {
+    const { tier } = z
+      .object({ tier: z.enum(['FREE', 'PREMIUM', 'PRO']).nullable() })
+      .parse(req.body);
+
+    const user = await prisma.user.update({
+      where: { id: req.authUser.sub },
+      data: { simulatedTier: tier },
+      select: { email: true, tier: true, simulatedTier: true },
+    });
+
+    // Give the simulated tier its perk allowances too, or the fuel-litre
+    // balance would read zero and the tier wouldn't be properly testable.
+    if (tier && tier !== 'FREE') {
+      await grantPerksForPeriod(req.authUser.sub, tier as Tier);
+    }
+
+    console.log(
+      tier
+        ? `[admin] ${user.email} is now simulating ${tier} (real tier: ${user.tier})`
+        : `[admin] ${user.email} stopped simulating; back to ${user.tier}`,
+    );
+
+    return {
+      simulatedTier: user.simulatedTier,
+      realTier: user.tier,
+      message: tier
+        ? `You are now seeing the app as a ${TIERS[tier as Tier].name} member. Your real membership is unchanged.`
+        : `Simulation off — back to your real ${TIERS[user.tier as Tier].name} membership.`,
+    };
+  });
+
+  /**
+   * Change another member's tier by hand — a refund, a goodwill upgrade, or
+   * fixing a payment that went wrong.
+   *
+   * Unlike simulation this is real, so it emails the member. Someone whose
+   * membership changed must be told, especially if it was a downgrade.
+   */
+  app.post('/users/:id/tier', async (req) => {
+    const { id } = z.object({ id: z.string() }).parse(req.params);
+    const { tier, notify: shouldNotify } = z
+      .object({
+        tier: z.enum(['FREE', 'PREMIUM', 'PRO']),
+        notify: z.boolean().default(true),
+      })
+      .parse(req.body);
+
+    const target = await prisma.user.findUnique({ where: { id }, select: { email: true, tier: true } });
+    if (!target) throw NotFound('User not found');
+
+    await applyMembershipChange({
+      userId: id,
+      tier: tier as Tier,
+      reason: 'admin',
+      silent: !shouldNotify,
+    });
+
+    console.log(`[admin] ${target.email}: ${target.tier} → ${tier} (manual, email ${shouldNotify ? 'sent' : 'suppressed'})`);
+    return { ok: true, email: target.email, from: target.tier, to: tier, emailed: shouldNotify };
+  });
+
   // ── Users ──
   app.get('/users', async (req) => {
     const { q, limit } = z
@@ -203,7 +282,7 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
       title: decision === 'VERIFIED' ? 'Identity verified' : 'Identity check failed',
       body:
         decision === 'VERIFIED'
-          ? 'Your MOTORIQ account is fully verified — your wallet and card are ready.'
+          ? 'Your SaveOnDrive account is fully verified — your wallet and card are ready.'
           : `We couldn't verify your identity${reason ? `: ${reason}` : ''}.`,
       type: 'KYC',
     });
@@ -216,7 +295,7 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
       .object({
         title: z.string().min(1),
         body: z.string().min(1),
-        tier: z.enum(['FREE', 'PLUS', 'DRIVE', 'DRIVE_PLUS']).optional(),
+        tier: z.enum(['FREE', 'PREMIUM', 'PRO']).optional(),
       })
       .parse(req.body);
     const users = await prisma.user.findMany({

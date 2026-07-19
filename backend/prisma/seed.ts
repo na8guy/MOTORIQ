@@ -6,11 +6,11 @@ const prisma = new PrismaClient();
 
 /**
  * Seeds a demo member so the Flutter app has something to log into.
- *   email:    demo@motoriq.co.uk
+ *   email:    demo@saveondrive.co.uk
  *   password: password123
  */
 async function main(): Promise<void> {
-  const email = 'demo@motoriq.co.uk';
+  const email = 'demo@saveondrive.co.uk';
   const passwordHash = await argon2.hash('password123');
 
   const user = await prisma.user.upsert({
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
 
   await prisma.savingsRecord.createMany({
     data: [
-      { userId: user.id, category: 'FUEL', amountMinor: 1240, description: 'Cheaper fuel via MOTORIQ' },
+      { userId: user.id, category: 'FUEL', amountMinor: 1240, description: 'Cheaper fuel via SaveOnDrive' },
       { userId: user.id, category: 'INSURANCE', amountMinor: 8500, description: 'Insurance switch' },
       { userId: user.id, category: 'CASHBACK', amountMinor: 320, description: 'Cashback reward' },
     ],
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
   });
 
   // Admin/ops account for the dashboard at /admin.
-  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@motoriq.co.uk';
+  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@saveondrive.co.uk';
   const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin12345';
   await prisma.user.upsert({
     where: { email: adminEmail },

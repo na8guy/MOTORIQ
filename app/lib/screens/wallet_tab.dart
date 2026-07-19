@@ -55,7 +55,7 @@ class _WalletTabState extends State<WalletTab> {
       final card = await _repo.issueCard();
       if (!mounted) return;
       setState(() => _cards = [card, ..._cards]);
-      _snack('MOTORIQ Mastercard issued •••• ${card.last4 ?? ''}');
+      _snack('SaveOnDrive Mastercard issued •••• ${card.last4 ?? ''}');
     } on ApiException catch (e) {
       _snack(e.message);
     }
@@ -166,7 +166,7 @@ class _CardsSection extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('MOTORIQ Mastercard',
+            const Text('SaveOnDrive Mastercard',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             TextButton.icon(
               onPressed: onIssue,

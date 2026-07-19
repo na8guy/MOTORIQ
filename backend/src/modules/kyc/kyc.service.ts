@@ -36,7 +36,7 @@ export async function submitKyc(params: {
   const result = await wallester.submitKyc({
     externalId: `kyc_${params.userId}`,
     firstName: user.firstName ?? 'Member',
-    lastName: user.lastName ?? 'MOTORIQ',
+    lastName: user.lastName ?? 'SaveOnDrive',
     dateOfBirth: params.dateOfBirth.toISOString().slice(0, 10),
     country: params.country ?? 'GB',
     documentType: params.documentType,
@@ -48,7 +48,7 @@ export async function submitKyc(params: {
   if (status === 'VERIFIED') {
     await notify(params.userId, {
       title: 'Identity verified',
-      body: 'You are fully verified — your MOTORIQ wallet and Mastercard are ready to use.',
+      body: 'You are fully verified — your SaveOnDrive wallet and Mastercard are ready to use.',
       type: 'KYC',
     });
   } else if (status === 'REJECTED') {

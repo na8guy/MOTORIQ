@@ -93,7 +93,7 @@ class _PlanCard extends StatelessWidget {
   static const _features = {
     'FREE': ['Fuel & EV price comparison', 'Fuel spend tracking', 'Vehicle reminders'],
     'PLUS': ['Everything in Free', 'Cashback & partner rewards', 'Service & insurance alerts'],
-    'DRIVE': ['Monthly prepaid fuel wallet', 'MOTORIQ Mastercard', 'Mileage packages'],
+    'DRIVE': ['Monthly prepaid fuel wallet', 'SaveOnDrive Mastercard', 'Mileage packages'],
     'DRIVE_PLUS': ['Everything in Drive', 'Free MOT & breakdown cover', 'Road tax contribution'],
   };
 

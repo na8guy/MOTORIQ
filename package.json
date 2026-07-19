@@ -1,5 +1,5 @@
 {
-  "name": "motoriq",
+  "name": "saveondrive",
   "private": true,
   "description": "Root shim so Render (or any host) can build and run the backend from the repo root, even when the service Root Directory is not set to `backend`.",
   "engines": {

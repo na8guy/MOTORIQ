@@ -9,6 +9,7 @@ import {
   recordIntent,
 } from '../savings/purchase-confirmation.service.js';
 import { NotFound } from '../../lib/errors.js';
+import { requireFeature } from '../entitlements/entitlements.guard.js';
 
 const fuelKinds = ['E10', 'E5', 'B7', 'SDV', 'ELECTRIC'] as const;
 
@@ -135,8 +136,9 @@ export default async function insightsRoutes(app: FastifyInstance): Promise<void
     return savingsSummary(req.authUser.sub, period as Period);
   });
 
-  // AI-generated narrative + tips on top of the computed figures.
-  app.get('/ai', async (req) => {
+  // AI narrative + tips on top of the figures. Premium: this is the
+  // "savings dashboard" members pay for, not the raw numbers above.
+  app.get('/ai', { onRequest: [requireFeature('savings.dashboard')] }, async (req) => {
     const { period } = periodQuery.parse(req.query);
     const summary = await savingsSummary(req.authUser.sub, period as Period);
     const user = await prisma.user.findUniqueOrThrow({
@@ -147,7 +149,7 @@ export default async function insightsRoutes(app: FastifyInstance): Promise<void
       [user.firstName, user.lastName].filter(Boolean).join(' ') || 'there';
     const insight = await generateSavingsInsight(summary, {
       displayName,
-      monthlyDrivePackage: user.subscription?.mileagePackage ?? null,
+      monthlyDrivePackage: null,
     });
     return { summary, insight };
   });
