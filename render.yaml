@@ -38,8 +38,10 @@ services:
     # `prisma db push` is idempotent — it creates the schema if it doesn't
     # exist and is a no-op afterwards ("auto-migrate if it doesn't exist").
     startCommand: >-
-      npx prisma db push &&
+      npm run predeploy &&
+      npx prisma db push --accept-data-loss &&
       (npm run seed || echo 'seed skipped') &&
+      (npm run seed:partners || echo 'partner seed skipped') &&
       node dist/server.js
     healthCheckPath: /health
     envVars:
