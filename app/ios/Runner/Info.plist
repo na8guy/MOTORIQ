@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Motoriq App</string>
+	<string>SaveOnDrive</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,9 +15,25 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>motoriq_app</string>
+	<string>saveondrive</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<!-- Stripe Checkout runs in a browser and needs somewhere to send the
+	     member back to. This scheme is what STRIPE_SUCCESS_URL/CANCEL_URL
+	     point at, so the app reopens on the right screen after paying. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>uk.co.saveondrive.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>saveondrive</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

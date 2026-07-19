@@ -768,3 +768,460 @@ class SavingsInsight {
     );
   }
 }
+
+// ─────────────────────── Membership & entitlements ───────────────────────
+
+/// A membership tier as advertised on the pricing screen.
+///
+/// Comes straight from the API's entitlements module, so the app can never
+/// advertise a feature the server's paywall won't honour.
+class MembershipPlan {
+  final String tier;
+  final String name;
+  final String tagline;
+  final int monthlyMinor;
+  final int annualMinor;
+  final int annualSavingMinor;
+  final List<String> highlights;
+  final List<String> features;
+  final TierPerks perks;
+
+  MembershipPlan({
+    required this.tier,
+    required this.name,
+    required this.tagline,
+    required this.monthlyMinor,
+    required this.annualMinor,
+    required this.annualSavingMinor,
+    required this.highlights,
+    required this.features,
+    required this.perks,
+  });
+
+  bool get isFree => monthlyMinor == 0;
+
+  factory MembershipPlan.fromJson(Map<String, dynamic> j) => MembershipPlan(
+        tier: j['tier'] as String,
+        name: j['name'] as String,
+        tagline: (j['tagline'] as String?) ?? '',
+        monthlyMinor: (j['monthlyMinor'] as num).toInt(),
+        annualMinor: (j['annualMinor'] as num).toInt(),
+        annualSavingMinor: (j['annualSavingMinor'] as num?)?.toInt() ?? 0,
+        highlights: ((j['highlights'] as List?) ?? []).map((e) => e.toString()).toList(),
+        features: ((j['features'] as List?) ?? []).map((e) => e.toString()).toList(),
+        perks: TierPerks.fromJson((j['perks'] as Map<String, dynamic>?) ?? const {}),
+      );
+}
+
+class TierPerks {
+  final int fuelLitresPerMonth;
+  final int servicesPerYear;
+  final int serviceCreditMinor;
+  final int motPerYear;
+  final String breakdownCover;
+  final int cashbackBps;
+  final int maxVehicles;
+
+  TierPerks({
+    this.fuelLitresPerMonth = 0,
+    this.servicesPerYear = 0,
+    this.serviceCreditMinor = 0,
+    this.motPerYear = 0,
+    this.breakdownCover = 'NONE',
+    this.cashbackBps = 0,
+    this.maxVehicles = 1,
+  });
+
+  factory TierPerks.fromJson(Map<String, dynamic> j) => TierPerks(
+        fuelLitresPerMonth: (j['fuelLitresPerMonth'] as num?)?.toInt() ?? 0,
+        servicesPerYear: (j['servicesPerYear'] as num?)?.toInt() ?? 0,
+        serviceCreditMinor: (j['serviceCreditMinor'] as num?)?.toInt() ?? 0,
+        motPerYear: (j['motPerYear'] as num?)?.toInt() ?? 0,
+        breakdownCover: (j['breakdownCover'] as String?) ?? 'NONE',
+        cashbackBps: (j['cashbackBps'] as num?)?.toInt() ?? 0,
+        maxVehicles: (j['maxVehicles'] as num?)?.toInt() ?? 1,
+      );
+}
+
+/// What a perk allowance has left this period.
+class PerkBalance {
+  final String kind;
+  final int allowance;
+  final int claimed;
+  final int remaining;
+  final int valueMinor;
+
+  PerkBalance({
+    required this.kind,
+    required this.allowance,
+    required this.claimed,
+    required this.remaining,
+    required this.valueMinor,
+  });
+
+  factory PerkBalance.fromJson(Map<String, dynamic> j) => PerkBalance(
+        kind: j['kind'] as String,
+        allowance: (j['allowance'] as num).toInt(),
+        claimed: (j['claimed'] as num).toInt(),
+        remaining: (j['remaining'] as num).toInt(),
+        valueMinor: (j['valueMinor'] as num?)?.toInt() ?? 0,
+      );
+
+  String get label => switch (kind) {
+        'FUEL_LITRES' => 'Fuel this month',
+        'SERVICE' => 'Service',
+        'MOT' => 'MOT',
+        'BREAKDOWN' => 'Breakdown cover',
+        _ => kind,
+      };
+}
+
+/// The member's own membership, as the server sees it.
+class MyMembership {
+  final String tier;
+  final bool active;
+
+  /// True when an admin is testing this tier rather than paying for it.
+  final bool simulated;
+  final List<String> features;
+  final TierPerks perks;
+  final List<PerkBalance> balances;
+  final String? status;
+  final String? billingPeriod;
+  final DateTime? currentPeriodEnd;
+  final bool cancelAtPeriodEnd;
+
+  MyMembership({
+    required this.tier,
+    required this.active,
+    required this.simulated,
+    required this.features,
+    required this.perks,
+    required this.balances,
+    this.status,
+    this.billingPeriod,
+    this.currentPeriodEnd,
+    this.cancelAtPeriodEnd = false,
+  });
+
+  /// The paywall question, answered locally for UI purposes only — the server
+  /// enforces this independently on every request.
+  bool has(String feature) => features.contains(feature);
+
+  factory MyMembership.fromJson(Map<String, dynamic> j) {
+    final sub = j['subscription'] as Map<String, dynamic>?;
+    return MyMembership(
+      tier: (j['tier'] as String?) ?? 'FREE',
+      active: (j['active'] as bool?) ?? true,
+      simulated: (j['simulated'] as bool?) ?? false,
+      features: ((j['features'] as List?) ?? []).map((e) => e.toString()).toList(),
+      perks: TierPerks.fromJson((j['perks'] as Map<String, dynamic>?) ?? const {}),
+      balances: ((j['balances'] as List?) ?? [])
+          .map((e) => PerkBalance.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      status: sub?['status'] as String?,
+      billingPeriod: sub?['billingPeriod'] as String?,
+      currentPeriodEnd: sub?['currentPeriodEnd'] == null
+          ? null
+          : DateTime.tryParse(sub!['currentPeriodEnd'] as String)?.toLocal(),
+      cancelAtPeriodEnd: (sub?['cancelAtPeriodEnd'] as bool?) ?? false,
+    );
+  }
+}
+
+// ─────────────────────────── Marketplace ───────────────────────────
+
+/// One garage's price for a service, in a comparison.
+class ServiceQuote {
+  final int rank;
+  final String partnerId;
+  final String partnerName;
+  final String address;
+  final String postcode;
+  final double distanceKm;
+  final double? rating;
+  final int ratingCount;
+  final bool vetted;
+  final bool bookable;
+  final int priceMinor;
+
+  /// FIXED (firm) · FROM (starting price) · ESTIMATE (we guessed, regionally).
+  final String basis;
+  final String priceNote;
+  final int perkCoversMinor;
+  final int youPayMinor;
+  final int savingVsDearestMinor;
+
+  ServiceQuote({
+    required this.rank,
+    required this.partnerId,
+    required this.partnerName,
+    required this.address,
+    required this.postcode,
+    required this.distanceKm,
+    this.rating,
+    this.ratingCount = 0,
+    required this.vetted,
+    required this.bookable,
+    required this.priceMinor,
+    required this.basis,
+    required this.priceNote,
+    this.perkCoversMinor = 0,
+    required this.youPayMinor,
+    this.savingVsDearestMinor = 0,
+  });
+
+  bool get isEstimate => basis == 'ESTIMATE';
+
+  factory ServiceQuote.fromJson(Map<String, dynamic> j) => ServiceQuote(
+        rank: (j['rank'] as num).toInt(),
+        partnerId: j['partnerId'] as String,
+        partnerName: j['partnerName'] as String,
+        address: (j['address'] as String?) ?? '',
+        postcode: (j['postcode'] as String?) ?? '',
+        distanceKm: (j['distanceKm'] as num?)?.toDouble() ?? 0,
+        rating: (j['rating'] as num?)?.toDouble(),
+        ratingCount: (j['ratingCount'] as num?)?.toInt() ?? 0,
+        vetted: (j['vetted'] as bool?) ?? false,
+        bookable: (j['bookable'] as bool?) ?? false,
+        priceMinor: (j['priceMinor'] as num).toInt(),
+        basis: (j['basis'] as String?) ?? 'ESTIMATE',
+        priceNote: (j['priceNote'] as String?) ?? '',
+        perkCoversMinor: (j['perkCoversMinor'] as num?)?.toInt() ?? 0,
+        youPayMinor: (j['youPayMinor'] as num).toInt(),
+        savingVsDearestMinor: (j['savingVsDearestMinor'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class QuoteComparison {
+  final String serviceType;
+  final List<ServiceQuote> quotes;
+  final int? cheapestMinor;
+  final int? dearestMinor;
+  final int spreadMinor;
+  final int? averageMinor;
+  final int partnersFound;
+  final bool hasRealPrices;
+  final String? note;
+  final int perkCoversMinor;
+
+  QuoteComparison({
+    required this.serviceType,
+    required this.quotes,
+    this.cheapestMinor,
+    this.dearestMinor,
+    this.spreadMinor = 0,
+    this.averageMinor,
+    this.partnersFound = 0,
+    this.hasRealPrices = false,
+    this.note,
+    this.perkCoversMinor = 0,
+  });
+
+  factory QuoteComparison.fromJson(Map<String, dynamic> j) => QuoteComparison(
+        serviceType: (j['serviceType'] as String?) ?? 'MOT',
+        quotes: ((j['quotes'] as List?) ?? [])
+            .map((e) => ServiceQuote.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        cheapestMinor: (j['cheapestMinor'] as num?)?.toInt(),
+        dearestMinor: (j['dearestMinor'] as num?)?.toInt(),
+        spreadMinor: (j['spreadMinor'] as num?)?.toInt() ?? 0,
+        averageMinor: (j['averageMinor'] as num?)?.toInt(),
+        partnersFound: (j['partnersFound'] as num?)?.toInt() ?? 0,
+        hasRealPrices: (j['hasRealPrices'] as bool?) ?? false,
+        note: j['note'] as String?,
+        perkCoversMinor: (j['perkCoversMinor'] as num?)?.toInt() ?? 0,
+      );
+}
+
+// ─────────────────────── Clean-air zones ───────────────────────
+
+class ZoneCheck {
+  final String zoneId;
+  final String zoneName;
+  final String kind;
+  final String operator;
+  final double distanceKm;
+  final bool inside;
+  final bool nearby;
+  final int dailyChargeMinor;
+  final String hours;
+  final String exemption;
+  final String checkUrl;
+
+  /// Our estimate for THIS vehicle — always with a confidence, never certain.
+  final int? likelyChargeMinor;
+  final String? likelyReason;
+  final String? confidence;
+
+  ZoneCheck({
+    required this.zoneId,
+    required this.zoneName,
+    required this.kind,
+    required this.operator,
+    required this.distanceKm,
+    required this.inside,
+    required this.nearby,
+    required this.dailyChargeMinor,
+    required this.hours,
+    required this.exemption,
+    required this.checkUrl,
+    this.likelyChargeMinor,
+    this.likelyReason,
+    this.confidence,
+  });
+
+  factory ZoneCheck.fromJson(Map<String, dynamic> j) {
+    final z = (j['zone'] as Map<String, dynamic>?) ?? const {};
+    final lc = j['likelyCharge'] as Map<String, dynamic>?;
+    return ZoneCheck(
+      zoneId: (z['id'] as String?) ?? '',
+      zoneName: (z['name'] as String?) ?? '',
+      kind: (z['kind'] as String?) ?? 'CAZ',
+      operator: (z['operator'] as String?) ?? '',
+      distanceKm: (j['distanceKm'] as num?)?.toDouble() ?? 0,
+      inside: (j['inside'] as bool?) ?? false,
+      nearby: (j['nearby'] as bool?) ?? false,
+      dailyChargeMinor: (z['dailyChargeMinor'] as num?)?.toInt() ?? 0,
+      hours: (z['hours'] as String?) ?? '',
+      exemption: (z['exemption'] as String?) ?? '',
+      checkUrl: (z['checkUrl'] as String?) ?? '',
+      likelyChargeMinor: (lc?['chargeMinor'] as num?)?.toInt(),
+      likelyReason: lc?['reason'] as String?,
+      confidence: lc?['confidence'] as String?,
+    );
+  }
+}
+
+// ─────────────────────── Vehicle health ───────────────────────
+
+class HealthFinding {
+  final String severity;
+  final String title;
+  final String detail;
+
+  /// Where this came from — DVLA, DVSA, MILEAGE, AGE or MEMBER. Shown so an
+  /// inference is never mistaken for a measurement.
+  final String basis;
+
+  HealthFinding({
+    required this.severity,
+    required this.title,
+    required this.detail,
+    required this.basis,
+  });
+
+  factory HealthFinding.fromJson(Map<String, dynamic> j) => HealthFinding(
+        severity: (j['severity'] as String?) ?? 'INFO',
+        title: (j['title'] as String?) ?? '',
+        detail: (j['detail'] as String?) ?? '',
+        basis: (j['basis'] as String?) ?? 'DVLA',
+      );
+}
+
+class HealthAction {
+  final String title;
+  final String detail;
+  final int? estimatedMinor;
+  final String? bookable;
+  final String urgency;
+
+  HealthAction({
+    required this.title,
+    required this.detail,
+    this.estimatedMinor,
+    this.bookable,
+    required this.urgency,
+  });
+
+  factory HealthAction.fromJson(Map<String, dynamic> j) => HealthAction(
+        title: (j['title'] as String?) ?? '',
+        detail: (j['detail'] as String?) ?? '',
+        estimatedMinor: (j['estimatedMinor'] as num?)?.toInt(),
+        bookable: j['bookable'] as String?,
+        urgency: (j['urgency'] as String?) ?? 'PLAN',
+      );
+}
+
+class HealthReport {
+  final String vehicleId;
+  final String registration;
+  final int score;
+  final String band;
+  final List<HealthFinding> findings;
+  final List<HealthAction> actions;
+  final int estimatedCostMinor;
+  final DateTime generatedAt;
+
+  HealthReport({
+    required this.vehicleId,
+    required this.registration,
+    required this.score,
+    required this.band,
+    required this.findings,
+    required this.actions,
+    required this.estimatedCostMinor,
+    required this.generatedAt,
+  });
+
+  factory HealthReport.fromJson(Map<String, dynamic> j) => HealthReport(
+        vehicleId: (j['vehicleId'] as String?) ?? '',
+        registration: (j['registration'] as String?) ?? '',
+        score: (j['score'] as num?)?.toInt() ?? 0,
+        band: (j['band'] as String?) ?? 'GOOD',
+        findings: ((j['findings'] as List?) ?? [])
+            .map((e) => HealthFinding.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        actions: ((j['actions'] as List?) ?? [])
+            .map((e) => HealthAction.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        estimatedCostMinor: (j['estimatedCostMinor'] as num?)?.toInt() ?? 0,
+        generatedAt:
+            DateTime.tryParse((j['generatedAt'] as String?) ?? '')?.toLocal() ?? DateTime.now(),
+      );
+}
+
+/// Insurance renewal guidance — NOT a quote. See the backend service for why.
+class RenewalGuidance {
+  final String vehicleId;
+  final String registration;
+  final DateTime? renewalDate;
+  final int? daysUntilRenewal;
+  final String window;
+  final String headline;
+  final String detail;
+  final List<({String label, String url, String note})> actions;
+  final int? typicalSavingMinor;
+
+  RenewalGuidance({
+    required this.vehicleId,
+    required this.registration,
+    this.renewalDate,
+    this.daysUntilRenewal,
+    required this.window,
+    required this.headline,
+    required this.detail,
+    required this.actions,
+    this.typicalSavingMinor,
+  });
+
+  factory RenewalGuidance.fromJson(Map<String, dynamic> j) => RenewalGuidance(
+        vehicleId: (j['vehicleId'] as String?) ?? '',
+        registration: (j['registration'] as String?) ?? '',
+        renewalDate: j['renewalDate'] == null
+            ? null
+            : DateTime.tryParse(j['renewalDate'] as String),
+        daysUntilRenewal: (j['daysUntilRenewal'] as num?)?.toInt(),
+        window: (j['window'] as String?) ?? 'UNKNOWN',
+        headline: (j['headline'] as String?) ?? '',
+        detail: (j['detail'] as String?) ?? '',
+        actions: ((j['actions'] as List?) ?? [])
+            .map((e) => (
+                  label: (e['label'] as String?) ?? '',
+                  url: (e['url'] as String?) ?? '',
+                  note: (e['note'] as String?) ?? '',
+                ))
+            .toList(),
+        typicalSavingMinor: (j['typicalSavingMinor'] as num?)?.toInt(),
+      );
+}

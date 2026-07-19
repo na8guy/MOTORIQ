@@ -11,7 +11,7 @@ import 'insights_screen.dart';
 import 'profile_screen.dart';
 import 'referrals_screen.dart';
 import 'reminders_screen.dart';
-import 'subscriptions_screen.dart';
+import 'membership_screen.dart';
 
 class DashboardTab extends StatelessWidget {
   const DashboardTab({super.key});
@@ -85,7 +85,7 @@ class DashboardTab extends StatelessWidget {
                   label: 'Membership',
                   value: _tierLabel(user?.tier ?? 'FREE'),
                   color: context.mq.money,
-                  onTap: () => _push(context, const SubscriptionsScreen()),
+                  onTap: () => _push(context, const MembershipScreen()),
                 ),
               ),
             ],
@@ -96,7 +96,7 @@ class DashboardTab extends StatelessWidget {
             const SizedBox(height: 12),
             _UpgradeCard(
               tier: user?.tier ?? 'FREE',
-              onTap: () => _push(context, const SubscriptionsScreen()),
+              onTap: () => _push(context, const MembershipScreen()),
             ),
           ],
           const SizedBox(height: 24),

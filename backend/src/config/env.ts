@@ -86,7 +86,14 @@ const schema = z.object({
   MOT_HISTORY_API_KEY: z.string().optional(),
   MOT_HISTORY_CLIENT_ID: z.string().optional(),
   MOT_HISTORY_CLIENT_SECRET: z.string().optional(),
-  MOT_HISTORY_TOKEN_URL: z.string().optional(),
+  // DVSA issues per-tenant Azure AD token URLs. This is SaveOnDrive's tenant —
+  // it is not a secret (the client id and secret are), so defaulting it here
+  // means one less thing to get wrong in the Render dashboard.
+  MOT_HISTORY_TOKEN_URL: z
+    .string()
+    .default(
+      'https://login.microsoftonline.com/a455b827-244f-4c97-b5b4-ce5d13b4d00c/oauth2/v2.0/token',
+    ),
   MOT_HISTORY_SCOPE: z.string().default('https://tapi.dvsa.gov.uk/.default'),
 
   // ── EV charging (Open Charge Map) ──

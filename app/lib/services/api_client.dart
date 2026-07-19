@@ -10,7 +10,23 @@ class ApiException implements Exception {
   final int statusCode;
   final String message;
   final String? code;
-  ApiException(this.statusCode, this.message, {this.code});
+
+  /// The error's `details` payload. Carried because a 402 PAYMENT_REQUIRED
+  /// includes which tier the member needs — throwing that away would leave the
+  /// app guessing, and it would guess wrong for Pro-only features.
+  final Object? details;
+
+  ApiException(this.statusCode, this.message, {this.code, this.details});
+
+  /// True when the server refused because this needs a paid membership.
+  bool get isPaymentRequired => statusCode == 402 || code == 'PAYMENT_REQUIRED';
+
+  /// The tier that unlocks it, from the 402 details.
+  String? get requiredTier {
+    final d = details;
+    return d is Map ? d['requiredTier'] as String? : null;
+  }
+
   @override
   String toString() => message;
 }
@@ -157,10 +173,13 @@ class ApiClient {
 
     String message = 'Request failed (${res.statusCode})';
     String? code;
+    Object? details;
     if (data is Map && data['error'] is Map) {
       message = (data['error']['message'] as String?) ?? message;
       code = data['error']['code'] as String?;
+      // Keep details: a 402 carries the tier the member needs to upgrade to.
+      details = data['error']['details'];
     }
-    throw ApiException(res.statusCode, message, code: code);
+    throw ApiException(res.statusCode, message, code: code, details: details);
   }
 }

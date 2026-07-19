@@ -349,3 +349,162 @@ class InsightsRepository {
   Future<void> logPurchase(Map<String, dynamic> body) =>
       _api.post('/insights/purchases', body: body);
 }
+
+/// Membership: pricing, upgrades, Stripe checkout, perks.
+class MembershipRepository {
+  MembershipRepository(this._api);
+  final ApiClient _api;
+
+  /// The pricing catalogue. Public — no account needed to see prices.
+  Future<List<MembershipPlan>> plans() async {
+    final data = await _api.get('/subscriptions/plans', auth: false) as Map<String, dynamic>;
+    return ((data['plans'] as List?) ?? [])
+        .map((e) => MembershipPlan.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// The member's own membership and perk balances.
+  Future<MyMembership> mine() async {
+    final data = await _api.get('/subscriptions/me') as Map<String, dynamic>;
+    return MyMembership.fromJson(data);
+  }
+
+  /// Start Stripe checkout. Returns the URL to open, and whether it's real.
+  ///
+  /// Note this does NOT change the tier — only Stripe's webhook does that.
+  Future<({String url, bool live, String? note})> checkout({
+    required String tier,
+    required String period,
+  }) async {
+    final data = await _api.post('/subscriptions/checkout',
+        body: {'tier': tier, 'period': period}) as Map<String, dynamic>;
+    return (
+      url: data['checkoutUrl'] as String,
+      live: (data['live'] as bool?) ?? false,
+      note: data['note'] as String?,
+    );
+  }
+
+  /// Complete a MOCK upgrade. Only works while Stripe is unconfigured — the
+  /// API refuses this outright once Stripe is live.
+  Future<void> confirmMockCheckout({required String tier, required String period}) =>
+      _api.post('/subscriptions/checkout/mock-confirm', body: {'tier': tier, 'period': period});
+
+  /// Stripe's billing portal — change card, invoices, cancel.
+  Future<String> portalUrl() async {
+    final data = await _api.post('/subscriptions/portal') as Map<String, dynamic>;
+    return data['portalUrl'] as String;
+  }
+
+  Future<String> cancel() async {
+    final data = await _api.post('/subscriptions/cancel') as Map<String, dynamic>;
+    return (data['message'] as String?) ?? 'Cancelled';
+  }
+
+  Future<void> resume() => _api.post('/subscriptions/resume');
+}
+
+/// Shop for the cheapest MOT, service or tyres.
+class MarketplaceRepository {
+  MarketplaceRepository(this._api);
+  final ApiClient _api;
+
+  Future<QuoteComparison> compare({
+    required double lat,
+    required double lng,
+    required String serviceType,
+    double radiusKm = 25,
+    int limit = 8,
+  }) async {
+    final data = await _api.get(
+      '/marketplace/compare?lat=$lat&lng=$lng&serviceType=$serviceType&radiusKm=$radiusKm&limit=$limit',
+    ) as Map<String, dynamic>;
+    return QuoteComparison.fromJson(data);
+  }
+
+  Future<Map<String, dynamic>> book({
+    required String partnerId,
+    required String serviceType,
+    required DateTime requestedFor,
+    String? vehicleId,
+    String? notes,
+  }) async {
+    final data = await _api.post('/marketplace/bookings', body: {
+      'partnerId': partnerId,
+      'serviceType': serviceType,
+      'requestedFor': requestedFor.toIso8601String(),
+      if (vehicleId != null) 'vehicleId': vehicleId,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    }) as Map<String, dynamic>;
+    return data;
+  }
+
+  Future<List<Map<String, dynamic>>> bookings() async {
+    final data = await _api.get('/marketplace/bookings') as List;
+    return data.cast<Map<String, dynamic>>();
+  }
+}
+
+/// ULEZ and clean-air zones.
+class ZonesRepository {
+  ZonesRepository(this._api);
+  final ApiClient _api;
+
+  Future<({bool inZone, List<ZoneCheck> checks, String? note})> check({
+    required double lat,
+    required double lng,
+    String? vehicleId,
+  }) async {
+    final q = 'lat=$lat&lng=$lng${vehicleId != null ? '&vehicleId=$vehicleId' : ''}';
+    final data = await _api.get('/zones/check?$q') as Map<String, dynamic>;
+    return (
+      inZone: (data['inZone'] as bool?) ?? false,
+      checks: ((data['checks'] as List?) ?? [])
+          .map((e) => ZoneCheck.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      note: data['note'] as String?,
+    );
+  }
+}
+
+/// Vehicle health reports.
+class HealthRepository {
+  HealthRepository(this._api);
+  final ApiClient _api;
+
+  Future<HealthReport> generate(String vehicleId) async {
+    final data = await _api.post('/health-report/$vehicleId') as Map<String, dynamic>;
+    return HealthReport.fromJson(data);
+  }
+}
+
+/// Insurance renewal guidance (guidance, not quotes).
+class InsuranceRepository {
+  InsuranceRepository(this._api);
+  final ApiClient _api;
+
+  Future<({List<RenewalGuidance> vehicles, String disclaimer})> renewal() async {
+    final data = await _api.get('/insurance/renewal') as Map<String, dynamic>;
+    return (
+      vehicles: ((data['vehicles'] as List?) ?? [])
+          .map((e) => RenewalGuidance.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      disclaimer: (data['disclaimer'] as String?) ?? '',
+    );
+  }
+}
+
+/// Admin-only: switch your own view to any tier for testing.
+class AdminRepository {
+  AdminRepository(this._api);
+  final ApiClient _api;
+
+  Future<({String? simulatedTier, String realTier, String message})> simulateTier(String? tier) async {
+    final data = await _api.post('/admin/simulate-tier', body: {'tier': tier}) as Map<String, dynamic>;
+    return (
+      simulatedTier: data['simulatedTier'] as String?,
+      realTier: (data['realTier'] as String?) ?? 'FREE',
+      message: (data['message'] as String?) ?? '',
+    );
+  }
+}

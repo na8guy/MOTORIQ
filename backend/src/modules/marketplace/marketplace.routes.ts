@@ -4,7 +4,8 @@ import { BadRequest, NotFound } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { notify } from '../notifications/notifications.service.js';
 import { requireFeature } from '../entitlements/entitlements.guard.js';
-import { claimPerk } from '../subscriptions/perks.service.js';
+import { claimPerk, perkBalances } from '../subscriptions/perks.service.js';
+import { compareQuotes, type ServiceType } from './quotes.service.js';
 
 /**
  * One-tap booking for MOTs, servicing, tyres and valeting.
@@ -109,6 +110,45 @@ export default async function marketplaceRoutes(app: FastifyInstance): Promise<v
           ? 'No partner garages are onboarded yet — this list fills as partners join.'
           : null,
     };
+  });
+
+  /**
+   * Shop for the cheapest MOT, service or tyres near you.
+   *
+   * Free to browse — seeing the spread between garages is the argument for
+   * upgrading. Booking at the price is the Pro feature.
+   */
+  app.get('/compare', async (req) => {
+    const q = z
+      .object({
+        lat: z.coerce.number().min(-90).max(90),
+        lng: z.coerce.number().min(-180).max(180),
+        serviceType: z.enum(SERVICE_TYPES),
+        radiusKm: z.coerce.number().positive().max(80).default(25),
+        limit: z.coerce.number().int().positive().max(20).default(8),
+        vehicleClass: z.enum(['CAR', 'VAN', 'MOTORCYCLE']).default('CAR'),
+      })
+      .parse(req.query);
+
+    // Apply whatever the member's membership still covers, so the comparison
+    // shows what THEY pay rather than the list price.
+    const balances = await perkBalances(req.authUser.sub);
+    const kind = q.serviceType === 'MOT' ? 'MOT' : q.serviceType === 'SERVICE' ? 'SERVICE' : null;
+    const perk = kind ? balances.find((b) => b.kind === kind) : undefined;
+    const perkCoversMinor =
+      perk && perk.remaining > 0 ? (kind === 'MOT' ? 5485 : perk.valueMinor) : 0;
+
+    const comparison = await compareQuotes({
+      latitude: q.lat,
+      longitude: q.lng,
+      serviceType: q.serviceType as ServiceType,
+      radiusKm: q.radiusKm,
+      limit: q.limit,
+      vehicleClass: q.vehicleClass,
+      perkCoversMinor,
+    });
+
+    return { ...comparison, perkCoversMinor };
   });
 
   /** A member's bookings. */

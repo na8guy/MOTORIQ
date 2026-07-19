@@ -17,7 +17,9 @@
     "prisma:push": "prisma db push",
     "seed": "tsx prisma/seed.ts",
     "lint": "eslint \"src/**/*.ts\"",
-    "check:margins": "tsx src/modules/entitlements/margins.check.ts"
+    "check:margins": "tsx src/modules/entitlements/margins.check.ts",
+    "check:mot": "tsx src/integrations/dvla/mot.check.ts",
+    "seed:partners": "tsx prisma/seed-partners.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

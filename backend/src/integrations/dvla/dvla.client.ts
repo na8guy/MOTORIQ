@@ -86,7 +86,12 @@ class DvlaClient {
     const vrn = normaliseVrn(registration);
     if (!vrn) return { ...emptyLookup(vrn), source: 'mock', error: 'Invalid registration' };
 
-    if (env.DVLA_MOCK || (!env.DVLA_VES_API_KEY && !env.MOT_HISTORY_API_KEY)) {
+    // Use whatever is actually configured. DVLA_MOCK is an explicit override
+    // for local work; otherwise a live MOT History key should be used even
+    // though VES registration is still closed — half-real beats all-mock, and
+    // MOT expiry is the date members most need.
+    const anyConfigured = !!env.DVLA_VES_API_KEY || !!env.MOT_HISTORY_API_KEY;
+    if (env.DVLA_MOCK || !anyConfigured) {
       return mockLookup(vrn);
     }
 

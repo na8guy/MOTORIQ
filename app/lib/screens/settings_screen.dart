@@ -200,6 +200,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 20),
 
+          // Admin only: switch the whole app's view to another tier to test
+          // what those members actually see. The API refuses this for
+          // non-admins, so a member cannot grant themselves Pro with it.
+          if (_isAdmin(context)) ...[
+            const _SectionLabel('Admin'),
+            _AdminTierSwitcher(onChanged: () => setState(() {})),
+            const SizedBox(height: 20),
+          ],
           const _SectionLabel('Legal'),
           Card(
             clipBehavior: Clip.antiAlias,
@@ -270,6 +278,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return 'Following your phone — currently ${dark ? 'dark' : 'light'}.';
   }
 
+  /// The admin tools only render for the admin account. This is a UI
+  /// convenience — the API enforces it independently.
+  static bool _isAdmin(BuildContext context) {
+    final email = context.read<AuthState>().user?.email.toLowerCase();
+    return email == 'wood.tyna@gmail.com';
+  }
+
   static String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }
@@ -289,6 +304,101 @@ class _SectionLabel extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
           color: context.mq.faint,
+        ),
+      ),
+    );
+  }
+}
+
+
+/// Lets an admin experience any membership tier without paying.
+///
+/// Deliberately loud about what it is: a simulation banner appears throughout
+/// the app, billing is untouched, and no upgrade email is sent — because
+/// nothing was bought. Real tier changes do email.
+class _AdminTierSwitcher extends StatefulWidget {
+  const _AdminTierSwitcher({required this.onChanged});
+  final VoidCallback onChanged;
+
+  @override
+  State<_AdminTierSwitcher> createState() => _AdminTierSwitcherState();
+}
+
+class _AdminTierSwitcherState extends State<_AdminTierSwitcher> {
+  String? _simulated;
+  String _realTier = 'FREE';
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    MembershipRepository(context.read<ApiClient>()).mine().then((m) {
+      if (mounted) {
+        setState(() {
+          _simulated = m.simulated ? m.tier : null;
+          _realTier = m.simulated ? _realTier : m.tier;
+        });
+      }
+    }).catchError((_) {});
+  }
+
+  Future<void> _set(String? tier) async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final auth = context.read<AuthState>();
+    try {
+      final r = await AdminRepository(context.read<ApiClient>()).simulateTier(tier);
+      if (!mounted) return;
+      setState(() {
+        _simulated = r.simulatedTier;
+        _realTier = r.realTier;
+      });
+      messenger.showSnackBar(SnackBar(content: Text(r.message)));
+      await auth.refreshUser();
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) messenger.showSnackBar(SnackBar(content: Text('\$e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Test a membership tier',
+                style: TextStyle(fontWeight: FontWeight.w600, color: context.mq.muted)),
+            const SizedBox(height: 4),
+            Text(
+              'See the app exactly as a member on that tier would. Your real '
+              'membership and billing are untouched, and no email is sent.',
+              style: TextStyle(fontSize: 12, color: context.mq.muted),
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'OFF', label: Text('Off')),
+                ButtonSegment(value: 'FREE', label: Text('Free')),
+                ButtonSegment(value: 'PREMIUM', label: Text('Premium')),
+                ButtonSegment(value: 'PRO', label: Text('Pro')),
+              ],
+              selected: {_simulated ?? 'OFF'},
+              onSelectionChanged:
+                  _busy ? null : (s) => _set(s.first == 'OFF' ? null : s.first),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _simulated == null
+                  ? 'Not simulating — you are on your real \$_realTier membership.'
+                  : 'Simulating \$_simulated. Your real membership is \$_realTier.',
+              style: TextStyle(fontSize: 11.5, color: context.mq.faint),
+            ),
+          ],
         ),
       ),
     );

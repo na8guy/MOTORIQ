@@ -5,7 +5,7 @@ import '../services/api_client.dart';
 import '../services/repositories.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
-import 'subscriptions_screen.dart';
+import 'membership_screen.dart';
 
 /// Lets a member view and edit their own details. Email is deliberately
 /// read-only: it identifies the account and is what verification is tied to,
@@ -233,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 subtitle: Text(_tierLabel(user?.tier ?? 'FREE')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SubscriptionsScreen()),
+                  MaterialPageRoute(builder: (_) => const MembershipScreen()),
                 ),
               ),
             ),

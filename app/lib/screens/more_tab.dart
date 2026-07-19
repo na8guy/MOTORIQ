@@ -10,7 +10,11 @@ import 'kyc_screen.dart';
 import 'insights_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
-import 'subscriptions_screen.dart';
+import 'membership_screen.dart';
+import 'marketplace_screen.dart';
+import 'zones_screen.dart';
+import 'health_screen.dart';
+import 'insurance_screen.dart';
 import 'referrals_screen.dart';
 import 'reminders_screen.dart';
 import 'notifications_screen.dart';
@@ -59,8 +63,16 @@ class _MoreTabState extends State<MoreTab> {
             () => _open(const SettingsScreen())),
         _tile(Icons.insights, 'Fuel savings', 'Your daily/weekly/monthly savings + AI tips',
             () => _open(const InsightsScreen())),
-        _tile(Icons.workspace_premium, 'Membership', 'Free · Plus · Drive · Drive+',
-            () => _open(const SubscriptionsScreen())),
+        _tile(Icons.workspace_premium, 'Membership', 'Free · Premium · Pro',
+            () => _open(const MembershipScreen())),
+        _tile(Icons.build_outlined, 'Book a service', 'Compare MOT, servicing & tyres near you',
+            () => _open(const MarketplaceScreen())),
+        _tile(Icons.air_outlined, 'Clean-air zones', 'ULEZ & congestion charges before you drive',
+            () => _open(const ZonesScreen())),
+        _tile(Icons.health_and_safety_outlined, 'Vehicle health', 'MOT risk, servicing & what it will cost',
+            () => _open(const HealthScreen())),
+        _tile(Icons.shield_outlined, 'Insurance renewal', 'Shop at the cheapest point in the cycle',
+            () => _open(const InsuranceScreen())),
         _tile(Icons.card_giftcard, 'Refer a friend', 'Give £10, get £10',
             () => _open(const ReferralsScreen())),
         _tile(Icons.notifications_active, 'Reminders', 'MOT, tax, service, insurance',

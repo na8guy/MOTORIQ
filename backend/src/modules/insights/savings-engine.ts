@@ -51,7 +51,7 @@ export async function recordPurchase(input: RecordPurchaseInput) {
   const savedMinor =
     benchmark != null ? Math.round((benchmark - input.pricePencePerUnit) * input.litres) : 0;
 
-  return prisma.fuelPurchase.create({
+  const created = await prisma.fuelPurchase.create({
     data: {
       userId: input.userId,
       vehicleId: input.vehicleId,
@@ -74,6 +74,23 @@ export async function recordPurchase(input: RecordPurchaseInput) {
       confirmedAt: new Date(),
     },
   });
+
+  // A hand-logged fill-up is a real saving, so it belongs in the same ledger
+  // the dashboard totals. Without this the insights screen and the dashboard
+  // headline disagree, which is worse than either being wrong alone.
+  if (savedMinor > 0) {
+    await prisma.savingsRecord.create({
+      data: {
+        userId: input.userId,
+        category: input.fuelKind === 'ELECTRIC' ? 'EV_CHARGING' : 'FUEL',
+        amountMinor: savedMinor,
+        description: `${input.litres.toFixed(0)}L logged manually [fuel-purchase:${created.id}]`,
+        occurredAt: created.purchasedAt,
+      },
+    });
+  }
+
+  return created;
 }
 
 // ── Rollups ──────────────────────────────────────────────────

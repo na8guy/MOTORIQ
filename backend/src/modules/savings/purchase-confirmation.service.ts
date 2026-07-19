@@ -125,7 +125,7 @@ export async function confirmPurchase(
       ? Math.max(0, Math.round((purchase.benchmarkPencePerUnit - price) * litres))
       : 0;
 
-  return prisma.fuelPurchase.update({
+  const updated = await prisma.fuelPurchase.update({
     where: { id: purchaseId },
     data: {
       status: 'CONFIRMED',
@@ -136,6 +136,69 @@ export async function confirmPurchase(
       totalMinor: Math.round(litres * price),
       savedMinor,
       purchasedAt: purchase.purchasedAt,
+    },
+  });
+
+  await postSavingsRecord(updated);
+  return updated;
+}
+
+/**
+ * Mirror a confirmed fuel saving into the SavingsRecord ledger.
+ *
+ * This exists because of a real bug: the dashboard's headline "total saved"
+ * reads SavingsRecord, but confirming a fill-up only ever wrote
+ * FuelPurchase.savedMinor. Two tables, never connected — so a member could
+ * confirm fill-up after fill-up and watch the number stay at £0.00.
+ *
+ * SavingsRecord stays the single ledger for ALL savings (fuel, insurance,
+ * servicing, cashback) because the dashboard has to total them together. Fuel
+ * purchases keep their own row for the per-fill detail the insights screen
+ * needs; this posts the summary line.
+ *
+ * Idempotent via the purchase id in `description`: confirming twice, or a card
+ * match landing after a member already confirmed, must not double-count.
+ */
+async function postSavingsRecord(purchase: {
+  id: string;
+  userId: string;
+  savedMinor: number;
+  litres: number;
+  fuelKind: string;
+  stationBrand: string | null;
+  purchasedAt: Date;
+}): Promise<void> {
+  if (purchase.savedMinor <= 0) return;
+
+  const tag = `fuel-purchase:${purchase.id}`;
+  const existing = await prisma.savingsRecord.findFirst({
+    where: { userId: purchase.userId, description: { contains: tag } },
+    select: { id: true, amountMinor: true },
+  });
+
+  const where = purchase.stationBrand ? ` at ${purchase.stationBrand}` : '';
+  const description =
+    `${purchase.litres.toFixed(0)}L of ${purchase.fuelKind}${where} — cheaper than the local average [${tag}]`;
+
+  if (existing) {
+    // The member corrected their litres after confirming; keep the ledger in
+    // step rather than adding a second row.
+    if (existing.amountMinor !== purchase.savedMinor) {
+      await prisma.savingsRecord.update({
+        where: { id: existing.id },
+        data: { amountMinor: purchase.savedMinor, description },
+      });
+    }
+    return;
+  }
+
+  await prisma.savingsRecord.create({
+    data: {
+      userId: purchase.userId,
+      category: purchase.fuelKind === 'ELECTRIC' ? 'EV_CHARGING' : 'FUEL',
+      amountMinor: purchase.savedMinor,
+      description,
+      occurredAt: purchase.purchasedAt,
     },
   });
 }
@@ -195,7 +258,7 @@ export async function tryConfirmFromCard(input: {
         )
       : 0;
 
-  await prisma.fuelPurchase.update({
+  const confirmed = await prisma.fuelPurchase.update({
     where: { id: match.id },
     data: {
       status: 'CONFIRMED',
@@ -208,6 +271,8 @@ export async function tryConfirmFromCard(input: {
       purchasedAt: at,
     },
   });
+  // Post to the savings ledger the dashboard actually reads.
+  await postSavingsRecord(confirmed);
   console.log(
     `[savings] card match confirmed purchase ${match.id} (${match.stationBrand}) for user ${input.userId}`,
   );

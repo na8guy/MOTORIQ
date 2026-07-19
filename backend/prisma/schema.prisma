@@ -638,6 +638,12 @@ model ServicePartner {
   ratingCount   Int      @default(0)
   /// Our cut, in basis points (250 = 2.5%).
   commissionBps Int      @default(1000)
+  /// Prices this partner has given us, keyed by service type:
+  ///   { "MOT": { "minor": 3495, "basis": "FIXED" }, ... }
+  /// Absent means the comparison shows a regional estimate, clearly labelled
+  /// as one — inventing a price and attributing it to a garage would be the
+  /// fastest way to lose a partner. See quotes.service.ts.
+  priceList     Json?
   /// Vetted partners only are bookable. Unvetted ones are listed but not sold.
   vetted        Boolean  @default(false)
   active        Boolean  @default(true)

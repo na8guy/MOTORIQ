@@ -19,6 +19,7 @@ import stripeRoutes from './modules/subscriptions/stripe.routes.js';
 import zonesRoutes from './modules/zones/zones.routes.js';
 import marketplaceRoutes from './modules/marketplace/marketplace.routes.js';
 import healthReportRoutes from './modules/health/health.routes.js';
+import insuranceRoutes from './modules/insurance/insurance.routes.js';
 import savingsRoutes from './modules/savings/savings.routes.js';
 import referralsRoutes from './modules/referrals/referrals.routes.js';
 import kycRoutes from './modules/kyc/kyc.routes.js';
@@ -124,6 +125,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await v1.register(zonesRoutes, { prefix: '/zones' });
       await v1.register(marketplaceRoutes, { prefix: '/marketplace' });
       await v1.register(healthReportRoutes, { prefix: '/health-report' });
+      await v1.register(insuranceRoutes, { prefix: '/insurance' });
       await v1.register(fuelRoutes, { prefix: '/fuel' });
       await v1.register(evRoutes, { prefix: '/ev' });
       await v1.register(savingsRoutes, { prefix: '/savings' });
