@@ -24,7 +24,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _load();
   }
 
-  void _load() => setState(() => _future = _repo.inbox());
+  void _load() {
+    // Statement body on purpose: an arrow here returns the assigned
+    // Future, and setState asserts on a callback that returns one.
+    setState(() {
+      _future = _repo.inbox();
+    });
+  }
 
   Future<void> _markAll() async {
     await _repo.markAllRead();

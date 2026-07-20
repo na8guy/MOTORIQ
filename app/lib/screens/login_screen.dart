@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -336,22 +336,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? 'Have an account? Sign in'
                           : 'New to SaveOnDrive? Create an account'),
                     ),
-                    // The server picker is a development tool — members should
-                    // never see it, let alone be able to point the app at
-                    // another host. It stays reachable in debug builds, and via
-                    // a long-press on the logo, so a release build can still be
-                    // aimed at a staging API when something needs diagnosing.
-                    if (kDebugMode) ...[
-                      const SizedBox(height: 8),
-                      TextButton.icon(
-                        onPressed: _busy ? null : _editServerUrl,
-                        icon: const Icon(Icons.dns_outlined, size: 16),
-                        label: Text(
-                          'Server: ${Uri.tryParse(AppConfig.apiBaseUrl)?.host ?? AppConfig.apiBaseUrl}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
+                    // The server picker is NEVER shown. It used to render in
+                    // debug builds, which meant it appeared on a device any
+                    // time the app was run from Xcode — the exact situation
+                    // where someone is looking at it. It is reachable only by
+                    // long-pressing the logo, which is undiscoverable by
+                    // accident but still lets a tester point at staging.
                   ],
                 ),
               ),

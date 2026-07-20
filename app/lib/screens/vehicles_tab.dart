@@ -29,7 +29,13 @@ class _VehiclesTabState extends State<VehiclesTab> {
     _future = _repo.list();
   }
 
-  void _load() => setState(() => _future = _repo.list());
+  void _load() {
+    // Statement body on purpose: an arrow here returns the assigned
+    // Future, and setState asserts on a callback that returns one.
+    setState(() {
+      _future = _repo.list();
+    });
+  }
 
   Future<void> _openForm({Vehicle? existing}) async {
     final saved = await showModalBottomSheet<bool>(

@@ -37,7 +37,9 @@ class _WalletTabState extends State<WalletTab> {
   }
 
   void _load() {
-    setState(() => _future = _repo.get());
+    setState(() {
+      _future = _repo.get();
+    });
     _loadCards();
   }
 

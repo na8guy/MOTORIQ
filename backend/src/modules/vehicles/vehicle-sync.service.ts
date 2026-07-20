@@ -64,7 +64,13 @@ export async function syncVehicle(
       motStatus: lookup.motStatus,
       motExpiryDate: toDate(lookup.motExpiryDate),
       dvlaSyncedAt: new Date(),
-      dvlaSyncError: lookup.error ?? null,
+      // Record when the data is SAMPLE data. A wrong MOT date shown as fact is
+      // worse than no date: a member could miss a real expiry believing they
+      // had months left. The app labels anything marked mock.
+      dvlaSyncError:
+        lookup.source === 'mock'
+          ? 'Sample data — DVLA/DVSA lookup is not connected yet'
+          : (lookup.error ?? null),
     },
   });
 

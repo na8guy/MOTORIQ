@@ -24,7 +24,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
     _load();
   }
 
-  void _load() => setState(() => _future = _repo.ai(period: _period));
+  void _load() {
+    // Statement body on purpose: an arrow here returns the assigned
+    // Future, and setState asserts on a callback that returns one.
+    setState(() {
+      _future = _repo.ai(period: _period);
+    });
+  }
 
   Future<void> _logFillup() async {
     final saved = await showModalBottomSheet<bool>(
