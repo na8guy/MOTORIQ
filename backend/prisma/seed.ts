@@ -21,10 +21,10 @@ async function main(): Promise<void> {
       passwordHash,
       firstName: 'Demo',
       lastName: 'Driver',
-      tier: 'PLUS',
+      tier: 'PREMIUM',
       emailVerified: true,
       wallet: { create: { balanceMinor: 5000 } },
-      subscription: { create: { plan: 'PLUS', priceMinor: 599, status: 'ACTIVE' } },
+      subscription: { create: { plan: 'PREMIUM', priceMinor: 3900, status: 'ACTIVE' } },
     },
   });
 

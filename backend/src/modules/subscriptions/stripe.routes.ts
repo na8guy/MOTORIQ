@@ -24,6 +24,14 @@ import { handleStripeEvent } from './subscription.service.js';
 export default async function stripeRoutes(app: FastifyInstance): Promise<void> {
   // Keep the raw bytes for this route only; the rest of the API keeps normal
   // JSON parsing.
+  //
+  // The remove is essential: app.ts installs a global application/json parser
+  // (so a bodyless POST is not a 400), this plugin inherits it, and adding a
+  // second parser for the same content type makes Fastify throw
+  // FST_ERR_CTP_ALREADY_PRESENT at boot — which took the whole API down.
+  // Removing first is scoped to this encapsulated context, so the rest of the
+  // API keeps the global parser.
+  app.removeContentTypeParser('application/json');
   app.addContentTypeParser(
     'application/json',
     { parseAs: 'buffer' },
