@@ -1,5 +1,5 @@
 {
-  "name": "motoriq-api",
+  "name": "saveondrive-api",
   "version": "0.1.0",
   "private": true,
   "description": "MOTORIQ backend API — the smart membership for cheaper driving",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npm run check:margins && tsc -p tsconfig.json",
+    "build": "npm run check:margins && tsc -p tsconfig.json && npm run predeploy",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",

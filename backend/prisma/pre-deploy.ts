@@ -95,24 +95,80 @@ async function migrateTierColumn(table: string, column: string, enumName: string
   console.log(`[pre-deploy] ${table}.${column} migrated; dropped type ${enumName}`);
 }
 
+/**
+ * Recreate the enum type with its new values and convert the column back.
+ *
+ * Doing the FULL conversion here — rather than leaving the column as text for
+ * `db push` to finish — is deliberate. `db push` refuses a text→enum narrowing
+ * without --accept-data-loss, and we cannot rely on that flag being present:
+ * Render keeps the start command stored on the service, so a change to
+ * startCommand in render.yaml is silently ignored on an existing service.
+ * Leaving the database in exactly the state the schema expects means `db push`
+ * has nothing to do and nothing to warn about, whatever command runs it.
+ */
+async function finishEnum(
+  table: string,
+  column: string,
+  enumName: string,
+  values: string[],
+): Promise<void> {
+  const type = await columnType(table, column);
+  if (type === enumName) {
+    console.log(`[pre-deploy] ${table}.${column} is already ${enumName}`);
+    return;
+  }
+  if (type === null) return;
+
+  const literals = values.map((v) => `'${v}'`).join(', ');
+  await prisma.$executeRawUnsafe(
+    `DO $$ BEGIN
+       IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '${enumName}') THEN
+         CREATE TYPE "${enumName}" AS ENUM (${literals});
+       END IF;
+     END $$;`,
+  );
+  await prisma.$executeRawUnsafe(`ALTER TABLE "${table}" ALTER COLUMN "${column}" DROP DEFAULT`);
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "${table}" ALTER COLUMN "${column}" TYPE "${enumName}" USING "${column}"::"${enumName}"`,
+  );
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "${table}" ALTER COLUMN "${column}" SET DEFAULT 'FREE'::"${enumName}"`,
+  );
+  console.log(`[pre-deploy] ${table}.${column} converted to ${enumName}`);
+}
+
 async function main(): Promise<void> {
   console.log('[pre-deploy] starting');
 
-  // Membership tiers: FREE/PLUS/DRIVE/DRIVE_PLUS → FREE/PREMIUM/PRO
+  // Membership tiers: FREE/PLUS/DRIVE/DRIVE_PLUS → FREE/PREMIUM/PRO.
+  // Two passes: widen to text and remap the values, then narrow back onto the
+  // new enum. Splitting it is what makes the conversion possible at all —
+  // Postgres will not convert directly between enums with different members.
   await migrateTierColumn('users', 'tier', 'Tier');
   await migrateTierColumn('subscriptions', 'plan', 'SubPlan');
 
-  // The old schema had a mileagePackage column that the new tiers don't use.
-  // Leave the data alone — `db push` removes the column, and losing it is
-  // intended, but there is no reason to destroy it before we have to.
+  await finishEnum('users', 'tier', 'Tier', ['FREE', 'PREMIUM', 'PRO']);
+  await finishEnum('subscriptions', 'plan', 'SubPlan', ['FREE', 'PREMIUM', 'PRO']);
 
   console.log('[pre-deploy] done');
 }
 
 main()
   .catch((err) => {
-    // A failure here means `db push` will fail too, so surface it loudly and
-    // stop the deploy rather than let it half-apply.
+    const msg = err instanceof Error ? err.message : String(err);
+    // At BUILD time the database may legitimately be unreachable, and failing
+    // the build for that would block a deploy that would otherwise be fine —
+    // the start command's `db push` still runs and will fail loudly there if
+    // something is genuinely wrong. A real migration error (reachable database,
+    // bad SQL) still stops the deploy, which is what we want.
+    const unreachable =
+      /ECONNREFUSED|ENOTFOUND|Can't reach database|timeout|P1001|P1002|Environment variable not found/i.test(
+        msg,
+      );
+    if (unreachable) {
+      console.warn(`[pre-deploy] database not reachable here — skipping (${msg.split('\n')[0]})`);
+      return;
+    }
     console.error('[pre-deploy] FAILED:', err);
     process.exit(1);
   })

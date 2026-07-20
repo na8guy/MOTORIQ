@@ -95,8 +95,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.directions_car_filled,
-                            color: Colors.white, size: 34),
+                        // The £ mark, matching the app icon and launch image.
+                        // Text rather than an Icon so it is the same glyph the
+                        // icon generator draws.
+                        child: const Text('£',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 34,
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
+                            )),
                       ),
                     ),
                   ),
