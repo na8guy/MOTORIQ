@@ -1,6 +1,5 @@
 // Smoke tests for the SaveOnDrive app shell.
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:saveondrive_app/main.dart';
@@ -9,23 +8,23 @@ import 'package:saveondrive_app/state/theme_state.dart';
 import 'package:saveondrive_app/theme.dart';
 
 void main() {
-  // flutter_secure_storage talks to the Keychain, which doesn't exist in a
-  // test binding; stub the channel so ThemeState.load() resolves instead of
-  // throwing and taking the test with it.
+  // SecureStore swallows Keychain failures, so no stub is needed: in a test
+  // binding the plugin is absent, reads return null, and the app still starts.
+  // That is the same behaviour a locked device gets, which is the point.
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() {
-    FlutterSecureStorage.setMockInitialValues({});
-  });
 
   testWidgets('App boots to a MaterialApp', (tester) async {
     await tester.pumpWidget(
-      SaveOnDriveApp(api: ApiClient(), themeState: ThemeState(const FlutterSecureStorage())),
+      SaveOnDriveApp(api: ApiClient(), themeState: ThemeState()),
     );
     expect(find.byType(MaterialApp), findsOneWidget);
+    // Let SecureStore's watchdog timer fire; flutter_test fails a test that
+    // leaves a Timer pending at teardown.
+    await tester.pump(const Duration(seconds: 3));
   });
 
   testWidgets('Both themes are wired up, and the mode is honoured', (tester) async {
-    final themeState = ThemeState(const FlutterSecureStorage());
+    final themeState = ThemeState();
     await tester.pumpWidget(SaveOnDriveApp(api: ApiClient(), themeState: themeState));
 
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
@@ -40,6 +39,7 @@ void main() {
       ThemeMode.dark,
       reason: 'choosing dark must reach MaterialApp',
     );
+    await tester.pump(const Duration(seconds: 3)); // drain SecureStore's timer
   });
 
   group('theme tokens', () {

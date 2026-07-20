@@ -1,5 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/secure_store.dart';
 
 /// Remembers whether the member wants light, dark, or whatever their phone is set to.
 ///
@@ -9,9 +11,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// restart; it's read before the first frame in main(), which avoids the flash
 /// of the wrong theme that comes from loading it after runApp.
 class ThemeState extends ChangeNotifier {
-  ThemeState(this._storage);
+  ThemeState();
 
-  final FlutterSecureStorage _storage;
   static const _key = 'saveondrive_theme_mode';
 
   ThemeMode _mode = ThemeMode.system;
@@ -20,7 +21,7 @@ class ThemeState extends ChangeNotifier {
   /// Load the saved choice. Call before runApp.
   Future<void> load() async {
     try {
-      final raw = await _storage.read(key: _key);
+      final raw = await SecureStore.read(_key);
       _mode = _parse(raw);
       notifyListeners();
     } catch (_) {
@@ -32,12 +33,13 @@ class ThemeState extends ChangeNotifier {
   Future<void> setMode(ThemeMode mode) async {
     if (_mode == mode) return;
     _mode = mode;
-    notifyListeners(); // repaint immediately; don't wait on the disk write
-    try {
-      await _storage.write(key: _key, value: mode.name);
-    } catch (_) {
-      // The choice still applies this session, it just won't survive a restart.
-    }
+    notifyListeners(); // repaint immediately
+
+    // Deliberately NOT awaited. The theme has already changed on screen; making
+    // the caller wait on a Keychain write means a slow or unresponsive Keychain
+    // stalls the UI for as long as the write takes. Persisting is best-effort —
+    // if it fails the choice still applies for this session.
+    unawaited(SecureStore.write(_key, mode.name));
   }
 
   static ThemeMode _parse(String? raw) => switch (raw) {

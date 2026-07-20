@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'secure_store.dart';
 import 'package:http/http.dart' as http;
 import '../app_config.dart';
 
@@ -50,23 +50,22 @@ class ApiClient {
   ApiClient({http.Client? client}) : _http = client ?? http.Client();
 
   final http.Client _http;
-  static const _storage = FlutterSecureStorage();
   static const _kAccess = 'saveondrive_access';
   static const _kRefresh = 'saveondrive_refresh';
 
-  Future<String?> get accessToken => _storage.read(key: _kAccess);
-  Future<String?> get refreshToken => _storage.read(key: _kRefresh);
+  Future<String?> get accessToken => SecureStore.read(_kAccess);
+  Future<String?> get refreshToken => SecureStore.read(_kRefresh);
 
   Future<bool> get isLoggedIn async => (await accessToken) != null;
 
   Future<void> setTokens(String access, String refresh) async {
-    await _storage.write(key: _kAccess, value: access);
-    await _storage.write(key: _kRefresh, value: refresh);
+    await SecureStore.write(_kAccess, access);
+    await SecureStore.write(_kRefresh, refresh);
   }
 
   Future<void> clearTokens() async {
-    await _storage.delete(key: _kAccess);
-    await _storage.delete(key: _kRefresh);
+    await SecureStore.delete(_kAccess);
+    await SecureStore.delete(_kRefresh);
   }
 
   Uri _uri(String path) => Uri.parse('${AppConfig.apiBaseUrl}$path');

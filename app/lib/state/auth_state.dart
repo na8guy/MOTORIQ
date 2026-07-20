@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../services/secure_store.dart';
 import '../models/models.dart';
 import '../services/api_client.dart';
 import '../services/repositories.dart';
@@ -45,11 +45,10 @@ class AuthState extends ChangeNotifier {
   /// `FirebaseMessaging.instance.getToken()`.
   Future<void> _registerDevice() async {
     try {
-      const storage = FlutterSecureStorage();
-      var token = await storage.read(key: 'saveondrive_device');
+      var token = await SecureStore.read('saveondrive_device');
       if (token == null) {
         token = 'dev-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}';
-        await storage.write(key: 'saveondrive_device', value: token);
+        await SecureStore.write('saveondrive_device', token);
       }
       final platform = switch (defaultTargetPlatform) {
         TargetPlatform.iOS => 'IOS',

@@ -1,5 +1,5 @@
 import 'dart:io' show Platform;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'services/secure_store.dart';
 
 /// Central configuration for the SaveOnDrive app.
 ///
@@ -9,7 +9,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 ///   2. a compile-time --dart-define=API_BASE_URL=...;
 ///   3. a sensible per-platform default.
 class AppConfig {
-  static const _storage = FlutterSecureStorage();
   static const _kApiUrl = 'saveondrive_api_url';
   static const _envUrl = String.fromEnvironment('API_BASE_URL');
 
@@ -47,7 +46,7 @@ class AppConfig {
   /// Load any persisted override at startup.
   static Future<void> loadOverride() async {
     try {
-      _override = await _storage.read(key: _kApiUrl);
+      _override = await SecureStore.read(_kApiUrl);
     } catch (_) {
       _override = null;
     }
@@ -59,9 +58,9 @@ class AppConfig {
     _override = v;
     try {
       if (v == null) {
-        await _storage.delete(key: _kApiUrl);
+        await SecureStore.delete(_kApiUrl);
       } else {
-        await _storage.write(key: _kApiUrl, value: v);
+        await SecureStore.write(_kApiUrl, v);
       }
     } catch (_) {/* ignore storage errors */}
   }
