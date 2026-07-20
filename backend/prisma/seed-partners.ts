@@ -280,6 +280,14 @@ async function main(): Promise<void> {
 
 main()
   .catch((e) => {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Seeding runs at build time, where the database may legitimately be
+    // unreachable. An empty partner list degrades to "no garages in range",
+    // which the app already handles honestly — not worth failing a deploy for.
+    if (/ECONNREFUSED|ENOTFOUND|Can't reach database|P1001|P1002|Environment variable not found/i.test(msg)) {
+      console.warn(`[seed-partners] database not reachable here — skipping (${msg.split('\n')[0]})`);
+      return;
+    }
     console.error(e);
     process.exit(1);
   })

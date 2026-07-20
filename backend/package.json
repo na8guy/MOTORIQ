@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "npm run check:margins && tsc -p tsconfig.json && npm run predeploy",
+    "build": "npm run check:margins && tsc -p tsconfig.json && npm run predeploy && npm run seed:partners",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
