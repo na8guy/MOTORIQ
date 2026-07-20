@@ -6,6 +6,7 @@ import { notify } from '../notifications/notifications.service.js';
 import { requireFeature } from '../entitlements/entitlements.guard.js';
 import { claimPerk, perkBalances } from '../subscriptions/perks.service.js';
 import { compareQuotes, type ServiceType } from './quotes.service.js';
+import { offersFor } from '../affiliate/affiliate.service.js';
 
 /**
  * One-tap booking for MOTs, servicing, tyres and valeting.
@@ -148,7 +149,27 @@ export default async function marketplaceRoutes(app: FastifyInstance): Promise<v
       perkCoversMinor,
     });
 
-    return { ...comparison, perkCoversMinor };
+    // Where no vetted garage can take the booking, offer the affiliate route
+    // instead of a dead end — EXCEPT for MOT, which is perk-backed. Sending a
+    // Premium member to an affiliate MOT would silently cost them the free one
+    // they are paying for. See affiliate.service.ts.
+    const noneBookable = comparison.quotes.every((q) => !q.bookable);
+    const affiliateOffers =
+      noneBookable && q.serviceType !== 'MOT'
+        ? await offersFor(req.authUser.sub, q.serviceType === 'TYRES' ? 'TYRES' : 'SERVICE')
+        : [];
+
+    return {
+      ...comparison,
+      perkCoversMinor,
+      affiliateOffers,
+      affiliateNote:
+        affiliateOffers.length > 0
+          ? 'None of these garages is a booking partner yet, so you can book direct ' +
+            'with one of these instead. We may earn a commission — it never changes ' +
+            'what you pay.'
+          : null,
+    };
   });
 
   /** A member's bookings. */

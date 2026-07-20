@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { notify } from '../modules/notifications/notifications.service.js';
 import { sweepIntents } from '../modules/savings/purchase-confirmation.service.js';
+import { syncCommissions } from '../modules/affiliate/affiliate.service.js';
 import { refreshAllVehicles } from '../modules/vehicles/vehicle-sync.service.js';
 
 /**
@@ -37,6 +38,11 @@ export async function runDailyJobs(): Promise<{
   // 3. Ask about fill-ups we can't confirm, and expire the forgotten ones so
   //    unproven intents never leak into the savings figures.
   const { prompted, expired } = await sweepIntents();
+
+  // 4. Reconcile affiliate commissions. Re-reads a trailing window because a
+  //    commission's status changes after the fact — an advertiser can decline
+  //    days later, and revenue we never re-read would stay on the books.
+  await syncCommissions().catch((err) => console.error('[jobs] affiliate sync failed:', err));
 
   console.log(
     `[jobs] daily run complete in ${Math.round((Date.now() - started) / 1000)}s — ` +

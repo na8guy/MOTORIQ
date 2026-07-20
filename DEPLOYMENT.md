@@ -237,3 +237,83 @@ small change once the rest exists.
 
 Until then `PUSH_PROVIDER=mock` is the honest setting: notifications are written
 to the database and shown in-app, they just are not pushed to the lock screen.
+
+---
+
+## 7. Awin — affiliate commissions
+
+### Where Awin fits, and where it doesn't
+
+Awin is an **affiliate network**, not a booking system. You send a member to the
+advertiser's own site with a tracked link; if they buy, the advertiser pays a
+commission days or weeks later, after they validate the sale.
+
+That has one consequence the product must respect:
+
+> **A membership perk cannot survive an affiliate link.** A Premium member's
+> free MOT works because *we* are the merchant and settle with the garage.
+> Through an affiliate link they pay the advertiser's checkout at the
+> advertiser's price — the perk they pay £39/month for simply evaporates.
+
+So the split is deliberate and enforced in code:
+
+| Journey | Route | Why |
+|---|---|---|
+| **Insurance** | **Awin** | We are not FCA-authorised and cannot quote. The aggregators are, and are already advertisers. This turns a screen that could only give advice into one that earns, legally. |
+| Breakdown, tyres, valeting | Awin | No perk attached, nothing lost by handing off |
+| Generic servicing where no vetted garage exists | Awin fallback | Better than a dead end |
+| **MOT** | **Never Awin** | Perk-backed. `offersFor()` returns `[]` for MOT by design |
+
+Awin also cannot power the price comparison: the API returns programmes and
+transactions, not "what does an MOT cost at this branch today". The £29.95–£45
+comparison stays on the direct-partnership data.
+
+### Variables
+
+| Variable | Where |
+|---|---|
+| `AWIN_PUBLISHER_ID` | Your publisher/affiliate id |
+| `AWIN_API_TOKEN` | Awin UI → user menu (top right) → **API Credentials** |
+| `AWIN_BASE_URL` | *defaulted* — `https://api.awin.com` |
+
+⚠️ The token is a **personal API token**, not a client-credentials exchange —
+it is tied to your user account, so it breaks if that account is removed.
+
+### After you sign up
+
+1. Join the programmes you want (Compare the Market, Confused.com, RAC,
+   Blackcircles, Halfords…)
+2. **Replace the placeholder advertiser ids** in
+   `backend/src/modules/affiliate/affiliate.service.ts` → `OFFERS`. Each
+   `advertiserId` is currently `AWIN_MID_*` and must become the real Awin
+   merchant id. This is the one value that cannot be guessed — a wrong id sends
+   the click to the wrong advertiser or nowhere.
+3. Set the two variables above and redeploy
+
+### How attribution works
+
+Every click writes an `AffiliateClick` row with a `clickRef` **before** the
+redirect. Awin returns that ref verbatim on the transaction, which is the only
+thread connecting a commission back to the member who earned it.
+
+Commissions sync nightly, re-reading a **45-day trailing window** — because a
+commission's status changes after the fact. Advertisers decline sales days
+later, and revenue we never re-read would sit on the books as income that does
+not exist.
+
+`APPROVED` is reported separately from `PENDING` for the same reason confirmed
+fill-ups are separated from intents: a pending commission is not money.
+
+Admin endpoints: `POST /api/v1/affiliate/sync`, `GET /api/v1/affiliate/commissions`.
+
+### Rate limit
+
+Awin allows **20 API calls per minute per user**. The client self-throttles and
+generates tracking links locally (they are a documented URL shape, not an API
+call), so tapping "get a quote" never waits on a round trip.
+
+### Disclosure
+
+Affiliate links are labelled in-app. The CAP Code requires paid links to be
+identifiable, and a motoring membership that quietly monetises its
+recommendations without saying so would deserve to lose the trust it is built on.

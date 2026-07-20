@@ -112,6 +112,14 @@ const schema = z.object({
   ROUTING_ENABLED: envBool(true),
   OSRM_BASE_URL: z.string().default('https://router.project-osrm.org'),
 
+  // ── Awin (affiliate commissions) ──
+  // A personal API token from the Awin UI (user menu → API Credentials), NOT a
+  // client-credentials exchange. Rate limited to 20 calls/minute per user,
+  // which is why commissions sync on a schedule rather than per request.
+  AWIN_API_TOKEN: z.string().optional(),
+  AWIN_PUBLISHER_ID: z.string().optional(),
+  AWIN_BASE_URL: z.string().default('https://api.awin.com'),
+
   // ── Legal document versions ──
   // Bump when the terms materially change: members whose accepted version is
   // older must accept again (UK GDPR requires demonstrable, current consent).

@@ -82,6 +82,7 @@ model User {
   perkGrants         PerkGrant[]
   serviceBookings    ServiceBooking[]
   gloveboxDocuments  GloveboxDocument[]
+  affiliateClicks    AffiliateClick[]
 
   @@map("users")
 }
@@ -756,4 +757,69 @@ model GloveboxDocument {
   @@index([userId])
   @@index([vehicleId])
   @@map("glovebox_documents")
+}
+
+// ─────────────────────────── Affiliate (Awin) ───────────────────────────
+
+/// A member clicking through to an affiliate advertiser.
+///
+/// Recorded BEFORE the redirect so a commission that comes back days later can
+/// be attributed to the member who earned it. Awin returns our `clickRef`
+/// verbatim on the transaction, which is the only thread connecting the two.
+model AffiliateClick {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The reference we send to Awin and match on when the money arrives.
+  clickRef String @unique
+
+  network      String @default("AWIN")
+  advertiserId String
+  advertiserName String
+  /// INSURANCE | MOT | SERVICE | TYRES | BREAKDOWN | OTHER
+  category     String
+  destinationUrl String
+
+  clickedAt DateTime @default(now())
+
+  commission AffiliateCommission?
+
+  @@index([userId])
+  @@index([clickedAt])
+  @@map("affiliate_clicks")
+}
+
+/// Money Awin says we earned. Mirrors their transaction, including its status —
+/// a PENDING commission is not income, because advertisers decline them.
+model AffiliateCommission {
+  id String @id @default(cuid())
+
+  clickId String?         @unique
+  click   AffiliateClick? @relation(fields: [clickId], references: [id], onDelete: SetNull)
+
+  /// Awin's own transaction id, so a re-sync updates rather than duplicates.
+  externalId String @unique
+  network    String @default("AWIN")
+
+  advertiserId   String
+  advertiserName String
+  /// PENDING | APPROVED | DECLINED — only APPROVED is real income.
+  status         String
+
+  /// What the member spent, and what we earn from it.
+  saleAmountMinor      Int @default(0)
+  commissionAmountMinor Int @default(0)
+  currency             String @default("GBP")
+
+  transactionDate DateTime
+  /// When the advertiser confirmed or declined it.
+  validationDate  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([transactionDate])
+  @@map("affiliate_commissions")
 }
