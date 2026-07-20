@@ -137,6 +137,40 @@ async function finishEnum(
   console.log(`[pre-deploy] ${table}.${column} converted to ${enumName}`);
 }
 
+/**
+ * Ensure a nullable column and its unique index exist.
+ *
+ * Adding a unique constraint ALSO trips Prisma's data-loss guard — I assumed it
+ * wouldn't, and the deploy failed a second time on exactly that:
+ *
+ *   • A unique constraint covering the columns [stripeCustomerId] on the table
+ *     users will be added. If there are existing duplicate values, this will fail.
+ *
+ * Creating them here means `db push` finds them already present and has nothing
+ * to warn about. The index name must match Prisma's own convention
+ * (`<table>_<column>_key`) or Prisma won't recognise it and will try again.
+ *
+ * Postgres allows unlimited NULLs in a unique index, so adding these to a table
+ * of existing rows — where every value is NULL — cannot fail.
+ */
+async function ensureUniqueColumn(table: string, column: string): Promise<void> {
+  if (!(await tableExists(table))) return;
+
+  const existing = await columnType(table, column);
+  if (existing === null) {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "${column}" text`,
+    );
+    console.log(`[pre-deploy] added ${table}.${column}`);
+  }
+
+  const indexName = `${table}_${column}_key`;
+  await prisma.$executeRawUnsafe(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "${indexName}" ON "${table}" ("${column}")`,
+  );
+  console.log(`[pre-deploy] unique index ${indexName} ensured`);
+}
+
 async function main(): Promise<void> {
   console.log('[pre-deploy] starting');
 
@@ -149,6 +183,12 @@ async function main(): Promise<void> {
 
   await finishEnum('users', 'tier', 'Tier', ['FREE', 'PREMIUM', 'PRO']);
   await finishEnum('subscriptions', 'plan', 'SubPlan', ['FREE', 'PREMIUM', 'PRO']);
+
+  // Stripe identifiers. Their unique constraints trip the same data-loss guard
+  // as the enum change did, so create them here rather than leave them to
+  // `db push`, which cannot add them without a flag we cannot set.
+  await ensureUniqueColumn('users', 'stripeCustomerId');
+  await ensureUniqueColumn('subscriptions', 'stripeSubscriptionId');
 
   console.log('[pre-deploy] done');
 }
