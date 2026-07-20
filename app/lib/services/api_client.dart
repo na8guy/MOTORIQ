@@ -70,8 +70,15 @@ class ApiClient {
 
   Uri _uri(String path) => Uri.parse('${AppConfig.apiBaseUrl}$path');
 
-  Future<Map<String, String>> _headers({bool auth = true}) async {
-    final headers = {'content-type': 'application/json'};
+  /// [hasBody] controls the content-type. Declaring `application/json` on a
+  /// request with no body makes Fastify reject it with 400 — "Body cannot be
+  /// empty when content-type is set to application/json" — which broke every
+  /// bodyless POST in the app (refresh a vehicle, cancel a membership, open the
+  /// billing portal). Only claim a JSON body when we are actually sending one.
+  Future<Map<String, String>> _headers({bool auth = true, bool hasBody = false}) async {
+    final headers = <String, String>{
+      if (hasBody) 'content-type': 'application/json',
+    };
     if (auth) {
       final token = await accessToken;
       if (token != null) headers['authorization'] = 'Bearer $token';
@@ -117,8 +124,8 @@ class ApiClient {
     bool auth = true,
   }) async {
     final uri = _uri(path);
-    final headers = await _headers(auth: auth);
     final encoded = body == null ? null : jsonEncode(body);
+    final headers = await _headers(auth: auth, hasBody: encoded != null);
 
     try {
       final Future<http.Response> req;

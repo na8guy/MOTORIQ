@@ -41,6 +41,35 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
+  // Accept an empty body on a request that declares application/json.
+  // Fastify's default parser rejects that with 400, which is technically
+  // defensible and practically useless: plenty of clients set the header on a
+  // bodyless POST, and an older build of our own app already does. Treat it as
+  // "no body" rather than an error. Registered before routes so the Stripe
+  // webhook's raw-buffer parser still overrides it in its own context.
+  app.addContentTypeParser(
+    'application/json',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      const text = typeof body === 'string' ? body.trim() : '';
+      if (text.length === 0) return done(null, undefined);
+      try {
+        done(null, JSON.parse(text));
+      } catch {
+        // Fastify's built-in parser tags a parse failure as 400. A custom
+        // parser must do the same, or malformed JSON — a client mistake —
+        // surfaces as a 500 and reads like the server broke.
+        const err = new Error('Body is not valid JSON') as Error & {
+          statusCode?: number;
+          code?: string;
+        };
+        err.statusCode = 400;
+        err.code = 'FST_ERR_CTP_INVALID_JSON_BODY';
+        done(err, undefined);
+      }
+    },
+  );
+
   await app.register(cors, {
     origin: env.CORS_ORIGINS === '*' ? true : env.CORS_ORIGINS.split(',').map((s) => s.trim()),
   });
@@ -96,10 +125,21 @@ export async function buildApp(): Promise<FastifyInstance> {
     request.log.error(error);
     const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
     const message = error instanceof Error ? error.message : 'Internal server error';
+
+    // Fastify's own errors carry a machine-readable code (FST_ERR_*) and are
+    // usually the CLIENT's fault, not a server fault. Labelling a 400 as
+    // "Internal server error" is what made an empty-body content-type mismatch
+    // take an afternoon to find: the status said 400, the body said 500, and
+    // neither said why. Pass the real code through, and the message too for a
+    // 4xx — a client error is not sensitive, it is feedback.
+    const fastifyCode = (error as { code?: string }).code;
+    const isClientError = statusCode >= 400 && statusCode < 500;
+
     reply.code(statusCode >= 400 ? statusCode : 500).send({
       error: {
-        code: 'INTERNAL_ERROR',
-        message: env.NODE_ENV === 'production' ? 'Internal server error' : message,
+        code: fastifyCode ?? 'INTERNAL_ERROR',
+        message:
+          isClientError || env.NODE_ENV !== 'production' ? message : 'Internal server error',
       },
     });
   });
