@@ -157,3 +157,83 @@ Signed in as `wood.tyna@gmail.com`:
 
 Or via the API: `POST /api/v1/admin/simulate-tier {"tier":"PRO"}`, and
 `{"tier":null}` to stop.
+
+---
+
+## 5. Stripe webhook — the URL must match exactly
+
+You configured:
+
+```
+https://motoriq-api.onrender.com/api/v1/payments/webhook
+```
+
+That path returned **404** before this change, which would have broken every
+payment silently: Stripe records a failed delivery, nobody is watching it, and
+the member pays and never receives their membership.
+
+**Both paths now work**, so your existing configuration is fine:
+
+- `/api/v1/stripe/webhook`
+- `/api/v1/payments/webhook` ← what you set
+
+Confirm in **Stripe → Developers → Webhooks → your endpoint**: recent
+deliveries should return **200**, not 404. Send a test event to check.
+
+**Events to subscribe to** (if not already):
+`checkout.session.completed`, `customer.subscription.created`,
+`customer.subscription.updated`, `customer.subscription.deleted`,
+`invoice.payment_failed`
+
+---
+
+## 6. Push notifications — going live with FCM
+
+The **backend is complete**: FCM HTTP v1, service-account JWT to OAuth, token
+caching, and invalid-token cleanup. It needs four variables.
+
+⚠️ **But credentials alone will not make notifications arrive.** The app
+currently registers a *placeholder* device id, not a real FCM token — so the
+server would send to ids Firebase has never heard of, and every send would fail
+silently. Both halves are needed.
+
+### Server side
+
+| Variable | Where it comes from |
+|---|---|
+| `PUSH_PROVIDER` | set to `fcm` (default is `mock`) |
+| `FCM_PROJECT_ID` | service-account JSON → `project_id` |
+| `FCM_CLIENT_EMAIL` | service-account JSON → `client_email` |
+| `FCM_PRIVATE_KEY` | service-account JSON → `private_key` |
+
+Get the JSON from **Firebase console → Project settings → Service accounts →
+Generate new private key**.
+
+**The private key is the thing most often pasted wrong.** Render mangles real
+newlines, so the value must keep its `\n` escapes exactly as they appear in the
+JSON — the whole string including `-----BEGIN PRIVATE KEY-----`.
+
+Verify with:
+
+```
+npm run check:push
+```
+
+### App side — still to do, and it needs your Firebase project
+
+1. Create a Firebase project (or use the one the service account belongs to)
+2. Add an iOS app with bundle id **`uk.co.saveondrive.app`**
+3. Download **`GoogleService-Info.plist`** into `app/ios/Runner/`
+4. Upload an **APNs authentication key** (from your Apple Developer account) to
+   Firebase → Project settings → Cloud Messaging. **iOS push does not work
+   without this** — it is the step people most often miss.
+5. In Xcode, add the **Push Notifications** capability to the Runner target
+6. Then `flutter pub add firebase_core firebase_messaging` and swap the
+   placeholder in `auth_state.dart` `_registerDevice()` for
+   `FirebaseMessaging.instance.getToken()`
+
+Steps 1–5 need your Google and Apple accounts, so I cannot do them. Step 6 is a
+small change once the rest exists.
+
+Until then `PUSH_PROVIDER=mock` is the honest setting: notifications are written
+to the database and shown in-app, they just are not pushed to the lock screen.

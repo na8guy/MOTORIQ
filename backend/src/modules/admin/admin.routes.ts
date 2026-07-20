@@ -123,6 +123,26 @@ export default async function adminRoutes(app: FastifyInstance): Promise<void> {
         live: !env.WALLESTER_MOCK,
         note: env.WALLESTER_MOCK ? 'WALLESTER_MOCK=true — cards/wallet are simulated.' : 'Live Wallester.',
       },
+      push: {
+        provider: env.PUSH_PROVIDER,
+        live: env.PUSH_PROVIDER !== 'mock' && configured(env.FCM_PROJECT_ID),
+        projectConfigured: configured(env.FCM_PROJECT_ID),
+        note:
+          env.PUSH_PROVIDER !== 'mock' && configured(env.FCM_PROJECT_ID)
+            ? 'Sending via FCM. NOTE: the app must register a real FCM token — ' +
+              'until it does, sends go to placeholder ids and silently fail.'
+            : 'PUSH_PROVIDER=mock or FCM_PROJECT_ID unset — notifications are logged, not sent.',
+      },
+      payments: {
+        live: configured(env.STRIPE_SECRET_KEY),
+        webhookConfigured: configured(env.STRIPE_WEBHOOK_SECRET),
+        // The single most common way this breaks is a webhook URL typo, which
+        // is invisible until someone pays and never gets their membership.
+        webhookPaths: ['/api/v1/stripe/webhook', '/api/v1/payments/webhook'],
+        note: configured(env.STRIPE_WEBHOOK_SECRET)
+          ? 'Webhook secret set. Point Stripe at either path above.'
+          : 'STRIPE_WEBHOOK_SECRET unset — the webhook returns 503 and NO membership will ever activate after payment.',
+      },
       ai: { live: configured(env.ANTHROPIC_API_KEY) },
       routing: { live: env.ROUTING_ENABLED, provider: env.OSRM_BASE_URL },
       auth: { requireEmailVerification: env.REQUIRE_EMAIL_VERIFICATION },

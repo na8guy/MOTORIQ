@@ -121,7 +121,14 @@ export async function buildApp(): Promise<FastifyInstance> {
       await v1.register(subscriptionsRoutes, { prefix: '/subscriptions' });
       // Stripe webhooks need the RAW body for signature verification, so they
       // register in their own encapsulated context with a different parser.
+      //
+      // Mounted at BOTH paths on purpose. A webhook URL is configured once in
+      // the Stripe dashboard and is easy to get subtly wrong; a mismatch is
+      // invisible until someone pays and never receives their membership,
+      // because Stripe just records a 404 nobody is watching. Supporting both
+      // spellings costs nothing and removes a whole class of silent failure.
       await v1.register(stripeRoutes, { prefix: '/stripe' });
+      await v1.register(stripeRoutes, { prefix: '/payments' });
       await v1.register(zonesRoutes, { prefix: '/zones' });
       await v1.register(marketplaceRoutes, { prefix: '/marketplace' });
       await v1.register(healthReportRoutes, { prefix: '/health-report' });

@@ -20,7 +20,8 @@
     "check:margins": "tsx src/modules/entitlements/margins.check.ts",
     "check:mot": "tsx src/integrations/dvla/mot.check.ts",
     "seed:partners": "tsx prisma/seed-partners.ts",
-    "predeploy": "tsx prisma/pre-deploy.ts"
+    "predeploy": "tsx prisma/pre-deploy.ts",
+    "check:push": "tsx src/integrations/push/fcm.check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",
