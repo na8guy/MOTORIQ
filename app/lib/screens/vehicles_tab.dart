@@ -23,7 +23,10 @@ class _VehiclesTabState extends State<VehiclesTab> {
   void initState() {
     super.initState();
     _repo = VehicleRepository(context.read<ApiClient>());
-    _load();
+    // Assign directly rather than via _load(): calling setState() inside
+    // initState() throws, because the State is not yet mounted into the tree.
+    // initState is always followed by a build, so no setState is needed here.
+    _future = _repo.list();
   }
 
   void _load() => setState(() => _future = _repo.list());
@@ -97,7 +100,28 @@ class _VehiclesTabState extends State<VehiclesTab> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError) {
-            return Center(child: Text('${snap.error}'));
+            // A readable card rather than a raw exception dumped on screen —
+            // and a way out, so a transient network failure is not a dead end.
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(28),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cloud_off, size: 40, color: context.mq.faint),
+                    const SizedBox(height: 12),
+                    const Text("Couldn't load your vehicles",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text('${snap.error}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: context.mq.muted, fontSize: 13)),
+                    const SizedBox(height: 16),
+                    OutlinedButton(onPressed: _load, child: const Text('Try again')),
+                  ],
+                ),
+              ),
+            );
           }
           final vehicles = snap.data ?? [];
           return RefreshIndicator(

@@ -6,6 +6,8 @@ import '../state/auth_state.dart';
 import '../theme.dart';
 import '../widgets/fill_up_confirm_card.dart';
 import 'ev_screen.dart';
+import 'marketplace_screen.dart';
+import 'zones_screen.dart';
 import 'home_screen.dart';
 import 'insights_screen.dart';
 import 'profile_screen.dart';
@@ -92,7 +94,7 @@ class DashboardTab extends StatelessWidget {
           ),
           // Upgrading was only reachable via More → Membership, which nobody
           // found. Put it on the dashboard for anyone not already on the top tier.
-          if ((user?.tier ?? 'FREE') != 'DRIVE_PLUS') ...[
+          if ((user?.tier ?? 'FREE') != 'PRO') ...[
             const SizedBox(height: 12),
             _UpgradeCard(
               tier: user?.tier ?? 'FREE',
@@ -120,6 +122,18 @@ class DashboardTab extends StatelessWidget {
             title: 'SaveOnDrive Mastercard',
             subtitle: 'Prepaid driving wallet for fuel & charging',
             onTap: () => HomeNav.of(context).goToTab(HomeTab.wallet),
+          ),
+          _FeatureRow(
+            icon: Icons.build_outlined,
+            title: 'Book MOT, service & tyres',
+            subtitle: 'Compare garage prices near you — spreads can top £15',
+            onTap: () => _push(context, const MarketplaceScreen()),
+          ),
+          _FeatureRow(
+            icon: Icons.air_outlined,
+            title: 'Clean-air zones',
+            subtitle: 'Check ULEZ charges before you drive',
+            onTap: () => _push(context, const ZonesScreen()),
           ),
           _FeatureRow(
             icon: Icons.card_giftcard,
@@ -153,9 +167,8 @@ class DashboardTab extends StatelessWidget {
   }
 
   static String _tierLabel(String tier) => switch (tier) {
-        'PLUS' => 'Plus',
-        'DRIVE' => 'Drive',
-        'DRIVE_PLUS' => 'Drive+',
+        'PREMIUM' => 'Premium',
+        'PRO' => 'Pro',
         _ => 'Free',
       };
 }
@@ -251,9 +264,14 @@ class _UpgradeCard extends StatelessWidget {
 
   /// What the member gets by moving up one step from where they are.
   static ({String next, String pitch}) _pitch(String tier) => switch (tier) {
-        'PLUS' => (next: 'Drive', pitch: 'Add the fuel wallet, card and cashback'),
-        'DRIVE' => (next: 'Drive+', pitch: 'Add breakdown cover and priority support'),
-        _ => (next: 'Plus', pitch: 'Unlock cheaper fuel alerts and savings insights'),
+        'PREMIUM' => (
+            next: 'Pro',
+            pitch: 'One-tap booking, 15L of fuel a month and premium breakdown',
+          ),
+        _ => (
+            next: 'Premium',
+            pitch: '6L of fuel a month, a free MOT and breakdown cover',
+          ),
       };
 
   @override

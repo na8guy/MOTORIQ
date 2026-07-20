@@ -22,14 +22,23 @@ class _WalletTabState extends State<WalletTab> {
   void initState() {
     super.initState();
     _repo = WalletRepository(context.read<ApiClient>());
-    _load();
+    // Same as vehicles: setState() inside initState() throws. Assign the
+    // future directly and let the first build pick it up.
+    _future = _repo.get();
+    _loadCards();
+  }
+
+  /// Cards are a paid perk, so a free member gets a 402 here. That is an
+  /// ordinary answer, not an error — swallow it and show no cards.
+  void _loadCards() {
+    _repo.cards().then((c) {
+      if (mounted) setState(() => _cards = c);
+    }).catchError((_) {});
   }
 
   void _load() {
     setState(() => _future = _repo.get());
-    _repo.cards().then((c) {
-      if (mounted) setState(() => _cards = c);
-    }).catchError((_) {});
+    _loadCards();
   }
 
   Future<void> _topUp() async {

@@ -251,9 +251,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   static String _tierLabel(String tier) => switch (tier) {
-        'PLUS' => 'SaveOnDrive Plus',
-        'DRIVE' => 'SaveOnDrive Drive',
-        'DRIVE_PLUS' => 'SaveOnDrive Drive+',
+        'PREMIUM' => 'SaveOnDrive Premium',
+        'PRO' => 'SaveOnDrive Pro',
         _ => 'Free',
       };
 
